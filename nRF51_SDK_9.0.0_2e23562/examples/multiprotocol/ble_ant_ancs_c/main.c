@@ -187,7 +187,7 @@ static uint8_t m_attr_negaction[ATTR_DATA_SIZE];                           /**< 
 
 static ble_uuid_t m_adv_uuids[] = {{ANCS_UUID_SERVICE,BLE_UUID_TYPE_VENDOR_BEGIN}};  /**< Universally unique service identifiers. */
 
-
+static int attr_to_print = 0;
 
 static uint8_t m_network_key[] = HRMRX_NETWORK_KEY;             /**< ANT PLUS network key. */
 
@@ -315,13 +315,23 @@ static void notif_print(ble_ancs_c_evt_notif_t * p_notif)
 {
     printf("\n\rNotification\n\r");
     printf("Event:       %s\n", lit_eventid[p_notif->evt_id]);
-    printf("Category ID: %s\n", lit_catid[p_notif->category_id]);
-    printf("Category Cnt:%u\n", (unsigned int) p_notif->category_count);
-    printf("UID:         %u\n\r", (unsigned int) p_notif->notif_uid);
+    printf("Category ID: %s\n\r", lit_catid[p_notif->category_id]);
+    //printf("Category Cnt:%u\n", (unsigned int) p_notif->category_count);
+    //printf("UID:         %u\n\r", (unsigned int) p_notif->notif_uid);
 	
-	// BSP_LED_0_MASK  BSP_LED_1_MASK BSP_LED_2_MASK
+	  //printf("Title     : %s\n", m_attr_title);
+	  //printf("Subtitle  : %s\n", m_attr_subtitle);
+	  //printf("Message   : %s\n\r", m_attr_message);
+	
+	  attr_to_print = 2;
+	
+	  memset(m_attr_title  , 0, ATTR_DATA_SIZE*sizeof(char));
+	  memset(m_attr_message, 0, ATTR_DATA_SIZE*sizeof(char));
+	
+	  // BSP_LED_0_MASK  BSP_LED_1_MASK BSP_LED_2_MASK
     LEDS_INVERT(BSP_LED_0_MASK);
 
+	  return;
     printf("Flags:\n\r");
     if(p_notif->evt_flags.silent == 1)
     {
@@ -343,6 +353,8 @@ static void notif_print(ble_ancs_c_evt_notif_t * p_notif)
     {
         printf(" Positive Action\n\r");
     }
+		
+		printf("\n\r\n\r");
 }
 
 
@@ -355,6 +367,8 @@ static void notif_print(ble_ancs_c_evt_notif_t * p_notif)
 static void notif_attr_print(ble_ancs_c_evt_notif_attr_t * p_attr,
                              ble_ancs_c_attr_list_t      * ancs_attr_list)
 {
+	if (attr_to_print) {
+	
     if (p_attr->attr_len != 0)
     {
         printf("%s: %s\n\r",
@@ -365,6 +379,12 @@ static void notif_attr_print(ble_ancs_c_evt_notif_attr_t * p_attr,
     {
         printf("%s: (N/A)\n\r", lit_attrid[p_attr->attr_id]);
     }
+	}
+	
+	if (attr_to_print && (p_attr->attr_id==1 || p_attr->attr_id==3)) {
+		attr_to_print -= 1;
+	}
+  
 }
 
 
@@ -927,7 +947,7 @@ static void uart_init(void)
         TX_PIN_NUMBER,
         RTS_PIN_NUMBER,
         CTS_PIN_NUMBER,
-        APP_UART_FLOW_CONTROL_ENABLED,
+        APP_UART_FLOW_CONTROL_DISABLED,
         false,
         UART_BAUDRATE_BAUDRATE_Baud115200
     };
