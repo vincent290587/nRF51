@@ -60,6 +60,7 @@
 
 #include "ant_stack_config.h"
 #include "ant_hrm.h"
+#include "ant_cad.h"
 #include "ant_interface.h"
 #include "ant_state_indicator.h"
 
@@ -74,12 +75,11 @@
 
 #define WILDCARD_TRANSMISSION_TYPE  0x00                        /**< Wildcard transmission type. */
 #define WILDCARD_DEVICE_NUMBER      0x00                        /**< Wildcard device number. */
+#define HRM_DEVICE_NUMBER      0x00                        
+#define CAD_DEVICE_NUMBER      0x00                        
 
 #define ANTPLUS_NETWORK_NUMBER      0x00                        /**< Network number. */
 #define HRMRX_NETWORK_KEY           {0xB9, 0xA5, 0x21, 0xFB, 0xBD, 0x72, 0xC3, 0x45}    /**< The default network key used. */
-
-
-
 
 #define UART_TX_BUF_SIZE                1024                                        /**< UART TX buffer size. */
 #define UART_RX_BUF_SIZE                1                                           /**< UART RX buffer size. */
@@ -112,6 +112,7 @@
 
 #define SECURITY_REQUEST_DELAY          APP_TIMER_TICKS(1500, APP_TIMER_PRESCALER)  /**< Delay after connection until security request is sent, if necessary (ticks). */
 #define PING_DELAY                      APP_TIMER_TICKS(19000, APP_TIMER_PRESCALER)
+#define ANT_DELAY                      APP_TIMER_TICKS(2000, APP_TIMER_PRESCALER)
 
 #define SEC_PARAM_BOND                  1                                           /**< Perform bonding. */
 #define SEC_PARAM_MITM                  0                                           /**< Man In The Middle protection not required. */
@@ -125,6 +126,14 @@
 #define SCHED_MAX_EVENT_DATA_SIZE       MAX(APP_TIMER_SCHED_EVT_SIZE, \
                                             BLE_STACK_HANDLER_SCHED_EVT_SIZE) /**< Maximum size of scheduler events. */
 #define SCHED_QUEUE_SIZE                10                                    /**< Maximum number of events in the scheduler queue. */
+
+
+#ifdef TRACE_DEBUG
+#define LOG printf
+#else
+#define LOG(...)
+#endif // TRACE_HRM_GENERAL_ENABLE 
+
 
 static const char * lit_catid[BLE_ANCS_NB_OF_CATEGORY_ID] =
 {
@@ -171,8 +180,11 @@ static uint8_t                   m_ancs_uuid_type;                         /**< 
 static dm_application_instance_t m_app_handle;                             /**< Application identifier allocated by the Device Manager. */
 static dm_handle_t               m_peer_handle;                            /**< Identifies the peer that is currently connected. */
 static ble_gap_sec_params_t      m_sec_param;                              /**< Security parameter for use in security requests. */
+
 static app_timer_id_t            m_sec_req_timer_id;                       /**< Security request timer. The timer lets us start pairing request if one does not arrive from the Central. */
 static app_timer_id_t            m_sec_ping;
+static app_timer_id_t            m_sec_hrm;
+static app_timer_id_t            m_sec_cad;
 
 
 static ble_ancs_c_evt_notif_t m_notification_latest;                       /**< Local copy to keep track of the newest arriving notifications. */
@@ -192,14 +204,18 @@ static int attr_to_print = 0;
 static uint8_t m_network_key[] = HRMRX_NETWORK_KEY;             /**< ANT PLUS network key. */
 
 /** @snippet [ANT HRM RX Instance] */
-ant_hrm_profile_t           m_ant_hrm, m_ant_cad;
+ant_hrm_profile_t           m_ant_hrm;
+ant_cad_profile_t           m_ant_cad;
 const ant_channel_config_t  ant_rx_channel_config = HRM_RX_CHANNEL_CONFIG(HRM_RX_CHANNEL_NUMBER, WILDCARD_TRANSMISSION_TYPE,
-                                                    WILDCARD_DEVICE_NUMBER, ANTPLUS_NETWORK_NUMBER, HRM_MSG_PERIOD_4Hz);
+                                                    HRM_DEVICE_NUMBER, ANTPLUS_NETWORK_NUMBER, HRM_MSG_PERIOD_4Hz);
 
-//const ant_channel_config_t  ant_rx_channel_config2 = CAD_RX_CHANNEL_CONFIG(CAD_RX_CHANNEL_NUMBER, WILDCARD_TRANSMISSION_TYPE,
-//                                                    WILDCARD_DEVICE_NUMBER, ANTPLUS_NETWORK_NUMBER, 0x1F96);
+const ant_channel_config_t  ant_rx_channel_config2 = CAD_RX_CHANNEL_CONFIG(CAD_RX_CHANNEL_NUMBER, WILDCARD_TRANSMISSION_TYPE,
+                                                    CAD_DEVICE_NUMBER, ANTPLUS_NETWORK_NUMBER, CAD_MSG_PERIOD);
 
 const uint8_t leds_list[LEDS_NUMBER] = LEDS_LIST;
+
+static char notif_message[BLE_ANCS_ATTR_DATA_MAX];
+static char notif_title  [BLE_ANCS_ATTR_DATA_MAX];
 
 /**@brief Callback function for handling asserts in the SoftDevice.
  *
@@ -231,6 +247,67 @@ void uart_error_handle(app_uart_evt_t * p_event)
     }
 }
 
+static void hrm_connect(void * p_context)
+{
+  uint32_t err_code = NRF_SUCCESS;
+  
+  err_code = ant_hrm_open(&m_ant_hrm);
+  APP_ERROR_CHECK(err_code);
+}
+
+static void cad_connect(void * p_context)
+{
+  uint32_t err_code = NRF_SUCCESS;
+  
+  err_code = ant_cad_open(&m_ant_cad);
+  APP_ERROR_CHECK(err_code);
+}
+
+void ant_evt_cad (ant_evt_t * p_ant_evt)
+{
+    uint32_t err_code = NRF_SUCCESS;
+
+    switch (p_ant_evt->event)
+					{
+							case EVENT_RX:
+									break;
+							case EVENT_RX_FAIL:
+									break;
+							case EVENT_RX_FAIL_GO_TO_SEARCH:
+									break;
+							case EVENT_CHANNEL_CLOSED:
+							case EVENT_RX_SEARCH_TIMEOUT:
+                  LOG("Reconnexion CAD...\n\r");
+									err_code = app_timer_start(m_sec_cad, ANT_DELAY, NULL);
+									break;
+					}
+          
+    APP_ERROR_CHECK(err_code);
+}
+
+void ant_evt_hrm (ant_evt_t * p_ant_evt)
+{
+    uint32_t err_code = NRF_SUCCESS;
+
+    switch (p_ant_evt->event)
+					{
+							case EVENT_RX:
+									break;
+							case EVENT_RX_FAIL:
+									break;
+							case EVENT_RX_FAIL_GO_TO_SEARCH:
+									break;
+							case EVENT_CHANNEL_CLOSED:
+							case EVENT_RX_SEARCH_TIMEOUT:
+                  LOG("Reconnexion HRM...\n\r");
+									err_code = app_timer_start(m_sec_hrm, ANT_DELAY, NULL);
+                  break;
+					}
+          
+    APP_ERROR_CHECK(err_code);
+}
+
+
 
 /**@brief Function for dispatching a ANT stack event to all modules with a ANT stack event handler.
  *
@@ -241,15 +318,24 @@ void uart_error_handle(app_uart_evt_t * p_event)
  */
 void ant_evt_dispatch(ant_evt_t * p_ant_evt)
 {
-    static uint8_t i = 0;
-
-    ant_hrm_rx_evt_handle(&m_ant_cad, p_ant_evt);
-    ant_hrm_rx_evt_handle(&m_ant_hrm, p_ant_evt);
-    ant_state_indicator_evt_handle(p_ant_evt);
 	
+	  switch(p_ant_evt->channel) {
+			case HRM_RX_CHANNEL_NUMBER:
+				ant_evt_hrm (p_ant_evt);
+        ant_hrm_rx_evt_handle(&m_ant_hrm, p_ant_evt);
+				break;
+			case CAD_RX_CHANNEL_NUMBER:
+				ant_evt_cad (p_ant_evt);
+        ant_cad_rx_evt_handle(&m_ant_cad, p_ant_evt);
+				break;
+			default:
+				break;
+		}
+
     // BSP_LED_0_MASK  BSP_LED_1_MASK BSP_LED_2_MASK
     LEDS_INVERT(BSP_LED_2_MASK);
 }
+
 
 
 /**@brief Function for handling the security request timer time-out.
@@ -303,7 +389,7 @@ static void apple_notification_setup(void)
     err_code = ble_ancs_c_data_source_notif_enable(&m_ancs_c);
     APP_ERROR_CHECK(err_code);
 
-    printf("Notifications Enabled.\n\r");
+    LOG("Notifications Enabled.\n\r");
 }
 
 
@@ -313,15 +399,15 @@ static void apple_notification_setup(void)
  */
 static void notif_print(ble_ancs_c_evt_notif_t * p_notif)
 {
-    printf("\n\rNotification\n\r");
-    printf("Event:       %s\n", lit_eventid[p_notif->evt_id]);
-    printf("Category ID: %s\n\r", lit_catid[p_notif->category_id]);
-    //printf("Category Cnt:%u\n", (unsigned int) p_notif->category_count);
-    //printf("UID:         %u\n\r", (unsigned int) p_notif->notif_uid);
+    LOG("\n\rNotification\n\r");
+    LOG("Event:       %s\n", lit_eventid[p_notif->evt_id]);
+    LOG("Category ID: %s\n\r\n\r", lit_catid[p_notif->category_id]);
+    //LOG("Category Cnt:%u\n", (unsigned int) p_notif->category_count);
+    //LOG("UID:         %u\n\r", (unsigned int) p_notif->notif_uid);
 	
-	  //printf("Title     : %s\n", m_attr_title);
-	  //printf("Subtitle  : %s\n", m_attr_subtitle);
-	  //printf("Message   : %s\n\r", m_attr_message);
+	  //LOG("Title     : %s\n", m_attr_title);
+	  //LOG("Subtitle  : %s\n", m_attr_subtitle);
+	  //LOG("Message   : %s\n\r", m_attr_message);
 	
 	  attr_to_print = 2;
 	
@@ -332,29 +418,6 @@ static void notif_print(ble_ancs_c_evt_notif_t * p_notif)
     LEDS_INVERT(BSP_LED_0_MASK);
 
 	  return;
-    printf("Flags:\n\r");
-    if(p_notif->evt_flags.silent == 1)
-    {
-        printf(" Silent\n\r");
-    }
-    if(p_notif->evt_flags.important == 1)
-    {
-        printf(" Important\n\r");
-    }
-    if(p_notif->evt_flags.pre_existing == 1)
-    {
-        printf(" Pre-existing\n\r");
-    }
-    if(p_notif->evt_flags.positive_action == 1)
-    {
-        printf(" Positive Action\n\r");
-    }
-    if(p_notif->evt_flags.negative_action == 1)
-    {
-        printf(" Positive Action\n\r");
-    }
-		
-		printf("\n\r\n\r");
 }
 
 
@@ -367,23 +430,43 @@ static void notif_print(ble_ancs_c_evt_notif_t * p_notif)
 static void notif_attr_print(ble_ancs_c_evt_notif_attr_t * p_attr,
                              ble_ancs_c_attr_list_t      * ancs_attr_list)
 {
-	if (attr_to_print) {
+
 	
     if (p_attr->attr_len != 0)
     {
-        printf("%s: %s\n\r",
+        LOG("%s: %s\n\r",
                lit_attrid[p_attr->attr_id],
                ancs_attr_list[p_attr->attr_id].p_attr_data);
     }
     else if (p_attr->attr_len == 0)
     {
-        printf("%s: (N/A)\n\r", lit_attrid[p_attr->attr_id]);
+        LOG("%s: (N/A)\n\r", lit_attrid[p_attr->attr_id]);
     }
-	}
+
 	
-	if (attr_to_print && (p_attr->attr_id==1 || p_attr->attr_id==3)) {
-		attr_to_print -= 1;
-	}
+  if (attr_to_print) {
+    if (p_attr->attr_id==1) {
+      memset(notif_title, 0, ATTR_DATA_SIZE);
+	    memcpy(notif_title, ancs_attr_list[p_attr->attr_id].p_attr_data, 
+        p_attr->attr_len > ATTR_DATA_SIZE ? ATTR_DATA_SIZE : p_attr->attr_len);
+    } else if (p_attr->attr_id==3) {
+      memset(notif_message, 0, ATTR_DATA_SIZE);
+      memcpy(notif_message, ancs_attr_list[p_attr->attr_id].p_attr_data, 
+        p_attr->attr_len > ATTR_DATA_SIZE ? ATTR_DATA_SIZE : p_attr->attr_len);
+    }
+    
+    if (p_attr->attr_id==1 || p_attr->attr_id==3) {
+      if (attr_to_print==1) {
+		    attr_to_print = 0;
+        // on sort la notif
+        printf("@%s@%s\n\r", notif_title, notif_message);
+	    } else if (attr_to_print) {
+        attr_to_print -= 1;
+      }
+    }
+    
+  }
+  
   
 }
 
@@ -405,6 +488,13 @@ static void timers_init(void)
 
     err_code = app_timer_create(&m_sec_ping, APP_TIMER_MODE_REPEATED, sec_ping);
     APP_ERROR_CHECK(err_code);
+  
+    err_code = app_timer_create(&m_sec_hrm, APP_TIMER_MODE_SINGLE_SHOT, hrm_connect);
+    APP_ERROR_CHECK(err_code);
+  
+    err_code = app_timer_create(&m_sec_cad, APP_TIMER_MODE_SINGLE_SHOT, cad_connect);
+    APP_ERROR_CHECK(err_code);
+  
 }
 
 
@@ -422,7 +512,7 @@ static void on_ancs_c_evt(ble_ancs_c_evt_t * p_evt)
     switch (p_evt->evt_type)
     {
         case BLE_ANCS_C_EVT_DISCOVER_COMPLETE:
-            printf("Apple Notification Service discovered on the server.\n");
+            LOG("Apple Notification Service discovered on the server.\n");
             apple_notification_setup();
             break;
 
@@ -443,7 +533,7 @@ static void on_ancs_c_evt(ble_ancs_c_evt_t * p_evt)
                                                  BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
                 APP_ERROR_CHECK(err_code);
             }
-            printf("Apple Notification Service not discovered on the server.\n");
+            LOG("Apple Notification Service not discovered on the server.\n");
             break;
 
         default:
@@ -669,7 +759,7 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
     switch (p_ble_evt->header.evt_id)
     {
         case BLE_GAP_EVT_CONNECTED:
-            printf("Connected.\n\r");
+            printf("@Connected\n\r");
             err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
             APP_ERROR_CHECK(err_code);
 
@@ -683,20 +773,25 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
             break;
 
         case BLE_GAP_EVT_DISCONNECTED:
-            printf("Disconnected.\n\r");
+            printf("@Disconnected\n\r");
             m_conn_handle = BLE_CONN_HANDLE_INVALID;
 				
 				    // BSP_LED_0_MASK  BSP_LED_1_MASK BSP_LED_2_MASK
             LEDS_OFF(BSP_LED_1_MASK);
-				    while (1) nrf_delay_ms(500);
-
+        
             err_code = app_timer_stop(m_sec_ping);
             APP_ERROR_CHECK(err_code);
+        
+            while (1) {
+              nrf_delay_ms(200);
+              LEDS_INVERT(BSP_LED_1_MASK);
+            }
+
             break;
 
         case BLE_GATTC_EVT_TIMEOUT:
         case BLE_GATTS_EVT_TIMEOUT:
-            printf("Timeout.\n\r");
+            LOG("Timeout.\n\r");
             // Disconnect on GATT Server and Client time-out events.
             err_code = sd_ble_gap_disconnect(m_conn_handle,
                                              BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
@@ -725,17 +820,13 @@ static void bsp_event_handler(bsp_event_t event)
             break;
 
         case BSP_EVENT_DISCONNECT:
-
             break;
 
         case BSP_EVENT_WHITELIST_OFF:
-
             break;
 
         case BSP_EVENT_KEY_1:
-            
             ble_ancs_c_request_attrs(&m_notification_latest);
-
             break;
 
         default:
@@ -836,11 +927,11 @@ static void ant_profile_setup(void)
 
     
     // CAD
-    //err_code = ant_cad_init(&m_ant_cad, &ant_rx_channel_config2, NULL);
-    //APP_ERROR_CHECK(err_code);
+    err_code = ant_cad_init(&m_ant_cad, &ant_rx_channel_config2);
+    APP_ERROR_CHECK(err_code);
 
-    //err_code = ant_hrm_open(&m_ant_cad);
-    //APP_ERROR_CHECK(err_code);
+    err_code = ant_cad_open(&m_ant_cad);
+    APP_ERROR_CHECK(err_code);
 
 /** @snippet [ANT HRM RX Profile Setup] */
 }
@@ -968,18 +1059,18 @@ static void uart_init(void)
  */
 static void buttons_leds_init(bool * p_erase_bonds)
 {
-    bsp_event_t startup_event;
+    //bsp_event_t startup_event;
 
-    uint32_t err_code = bsp_init(BSP_INIT_LED | BSP_INIT_BUTTONS,
+    uint32_t err_code = bsp_init(BSP_INIT_LED,
                                  APP_TIMER_TICKS(100, APP_TIMER_PRESCALER),
                                  bsp_event_handler);
 
     APP_ERROR_CHECK(err_code);
 
-    err_code = bsp_btn_ble_init(NULL, &startup_event);
-    APP_ERROR_CHECK(err_code);
+    //err_code = bsp_btn_ble_init(NULL, &startup_event);
+    //APP_ERROR_CHECK(err_code);
 
-    *p_erase_bonds = (startup_event == BSP_EVENT_CLEAR_BONDING_DATA);
+    //*p_erase_bonds = (startup_event == BSP_EVENT_CLEAR_BONDING_DATA);
 }
 
 
@@ -1031,11 +1122,9 @@ int main(void)
     advertising_init();
     conn_params_init();
 	
-    printf("ANT ANCS\n");
+    LOG("ANT ANCS\n");
 
     ant_profile_setup();
-
-    printf("BLE ANCS\n");
 
     // Start execution.
     err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
