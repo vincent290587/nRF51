@@ -22,18 +22,18 @@ else
 NO_ECHO := @
 endif
 
-GNU_INSTALL_ROOT := "/home/vincent/nordic/arm-none"
-GNU_PREFIX       := "arm-none-eabi"
+GNU_INSTALL_ROOT := "/cygdrive/c/SysGCC/arm-eabi"
+GNU_PREFIX       := "arm-eabi"
 
 # Toolchain commands
-CC       		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-gcc"
-AS       		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-as"
-AR       		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-ar" -r
-LD       		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-ld"
-NM       		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-nm"
-OBJDUMP  		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-objdump"
-OBJCOPY  		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-objcopy"
-SIZE    		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-size"
+CC       		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-gcc.exe"
+AS       		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-as.exe"
+AR       		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-ar.exe" -r
+LD       		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-ld.exe"
+NM       		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-nm.exe"
+OBJDUMP  		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-objdump.exe"
+OBJCOPY  		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-objcopy.exe"
+SIZE    		:= "$(GNU_INSTALL_ROOT)/bin/$(GNU_PREFIX)-size.exe"
 
 #function for removing duplicates in a list
 remduplicates = $(strip $(if $1,$(firstword $1) $(call remduplicates,$(filter-out $(firstword $1),$1))))
@@ -56,6 +56,7 @@ $(abspath ../../../../../../components/drivers_nrf/gpiote/nrf_drv_gpiote.c) \
 $(abspath ../../../../../../components/drivers_nrf/pstorage/pstorage.c) \
 $(abspath ../../../../../../components/ant/ant_stack_config/ant_stack_config.c) \
 $(abspath ../../../../../../components/ant/ant_state_indicator/ant_state_indicator.c) \
+$(abspath ../../../../../../components/ant/ant_profiles/ant_cad/ant_cad.c) \
 $(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/ant_hrm.c) \
 $(abspath ../../../../../../components/ant/ant_channel_config/ant_channel_config.c) \
 $(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/pages/ant_hrm_page_0.c) \
@@ -102,6 +103,7 @@ INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_state_indicator)
 INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm)
 INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/utils)
 INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_channel_config)
+INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_profiles/ant_cad)
 INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/pages)
 INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/pages/logger)
 INC_PATHS += -I$(abspath ../../../../../../components/drivers_nrf/gpiote)
@@ -125,6 +127,8 @@ BUILD_DIRECTORIES := $(sort $(OBJECT_DIRECTORY) $(OUTPUT_BINARY_DIRECTORY) $(LIS
 #flags common to all targets
 CFLAGS  = -DSWI_DISABLE0
 CFLAGS += -DBOARD_PCA10028
+CFLAGS += -DBSP_SIMPLE
+CFLAGS += -DBSP_MAIN
 CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -DNRF51
 CFLAGS += -DANT_STACK_SUPPORT_REQD
@@ -133,7 +137,7 @@ CFLAGS += -DBSP_UART_SUPPORT
 CFLAGS += -DS310
 CFLAGS += -mcpu=cortex-m0
 CFLAGS += -mthumb -mabi=aapcs --std=gnu99
-CFLAGS += -Wall -Werror -O3
+CFLAGS += -Wall -Os
 CFLAGS += -mfloat-abi=soft
 # keep every function in separate section. This will allow linker to dump unused functions
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
@@ -144,7 +148,7 @@ LDFLAGS += -Xlinker -Map=$(LISTING_DIRECTORY)/$(OUTPUT_FILENAME).map
 LDFLAGS += -mthumb -mabi=aapcs -L $(TEMPLATE_PATH) -T$(LINKER_SCRIPT)
 LDFLAGS += -mcpu=cortex-m0
 # let linker to dump unused sections
-LDFLAGS += -Wl,--gc-sections
+LDFLAGS += -Wl,--gc-sections -ffunction-sections -fdata-sections -Os
 # use newlib in nano version
 LDFLAGS += --specs=nano.specs -lc -lnosys
 

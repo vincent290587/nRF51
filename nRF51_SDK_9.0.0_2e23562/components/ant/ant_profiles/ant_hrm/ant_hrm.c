@@ -181,13 +181,18 @@ void ant_hrm_tx_evt_handle(ant_hrm_profile_t * p_profile, ant_evt_t * p_ant_even
  */
 static void decode_hrm_rx_message(ant_hrm_profile_t * p_profile, uint8_t * p_message_payload)
 {
+    uint16_t rrInterval;
+    uint16_t curBeatTime;
+    uint16_t prevBeatTime;
+    uint16_t rrInterval_ms;
+  
     const ant_hrm_message_layout_t * p_hrm_message_payload  = (ant_hrm_message_layout_t *)p_message_payload;
 
     LOG_ANT("HRM RX Page Number:               %u\r\n", p_hrm_message_payload->page_number);
 
     ant_hrm_page_0_decode(p_hrm_message_payload->page_payload, &(p_profile->page_0)); // Page 0 is present in each message
 
-    printf("@HRM=%u\n\r", (unsigned int)p_profile->page_0.computed_heart_rate);
+    curBeatTime = p_profile->page_0.beat_time;
   
     switch (p_hrm_message_payload->page_number)
     {
@@ -209,6 +214,13 @@ static void decode_hrm_rx_message(ant_hrm_profile_t * p_profile, uint8_t * p_mes
 
         case ANT_HRM_PAGE_4:
             ant_hrm_page_4_decode(p_hrm_message_payload->page_payload, &(p_profile->page_4));
+        
+            prevBeatTime = p_profile->page_4.prev_beat;
+            rrInterval = curBeatTime - prevBeatTime;
+            rrInterval_ms = rrInterval * 1000. / 1024.;
+            printf("$HRM,%u,%u\n\r",
+                      (unsigned int)p_profile->page_0.computed_heart_rate,
+                      (unsigned int)rrInterval_ms);
             break;
 
         default:

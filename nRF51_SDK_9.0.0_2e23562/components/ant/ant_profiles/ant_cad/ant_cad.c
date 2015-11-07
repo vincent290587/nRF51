@@ -85,15 +85,26 @@ static void decode_cad_rx_message(ant_cad_profile_t * p_profile, uint8_t * p_mes
   uint32_t d_cad_time = m_cadence_event_time - m_cadence_event_time_prev;
   uint32_t d_cad_nb = m_cadence_revolution_count - m_cadence_revolution_count_prev;
   
-  float tmpcad;
+  uint32_t d_speed_time = m_speed_event_time - m_speed_event_time_prev;
+  uint32_t d_speed_nb = m_speed_revolution_count - m_speed_revolution_count_prev;
+  
+  float tmpcad, tmpspeed;
 
-  tmpcad = 60. * (float)d_cad_nb / (float)d_cad_time;
-  tmpcad *= 1024.;
+  if (d_cad_nb && d_speed_nb) {
+    tmpcad = 60. * (float)d_cad_nb / (float)d_cad_time;
+    tmpcad *= 1024.;
   
-  m_cadence_event_time_prev = m_cadence_event_time;
-  m_cadence_revolution_count_prev = m_cadence_revolution_count;
+    tmpspeed = 3.6 * 2000. * (float)d_speed_nb / (float)d_speed_time;
+    tmpspeed *= 1024;
   
-  printf("@CAD=%u\n\r", (unsigned int)tmpcad);
+    m_cadence_event_time_prev = m_cadence_event_time;
+    m_cadence_revolution_count_prev = m_cadence_revolution_count;
+  
+    m_speed_event_time_prev = m_speed_event_time;
+    m_speed_revolution_count_prev = m_speed_revolution_count;
+  
+    printf("$CAD,%u,%.1f\n\r", (unsigned int)tmpcad, tmpspeed);
+  }
 }
 
 

@@ -49,7 +49,6 @@
 #include "pstorage.h"
 #include "nrf_soc.h"
 #include "bsp.h"
-#include "bsp_btn_ble.h"
 #include "softdevice_handler.h"
 #include "app_uart.h"
 #include "app_trace.h"
@@ -63,6 +62,8 @@
 #include "ant_cad.h"
 #include "ant_interface.h"
 #include "ant_state_indicator.h"
+
+#define IS_SRVC_CHANGED_CHARACT_PRESENT 1
 
 // Multiple ANT channel settings
 #define ANT_STACK_TOTAL_CHANNELS_ALLOCATED  3               // (SIZE_OF_NONENCRYPTED_ANT_CHANNEL bytes)
@@ -96,7 +97,7 @@
 #define ADV_INTERVAL_FAST_PERIOD        30                                          /**< The duration of the fast advertising period (in seconds). */
 
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
-#define APP_TIMER_MAX_TIMERS            (5 + BSP_APP_TIMERS_NUMBER)                 /**< Maximum number of simultaneously created timers. */
+#define APP_TIMER_MAX_TIMERS            10                  /**< Maximum number of simultaneously created timers. */
 #define APP_TIMER_OP_QUEUE_SIZE         5                                           /**< Size of timer operation queues. */
 
 #define MIN_CONN_INTERVAL               MSEC_TO_UNITS(500, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.5 seconds). */
@@ -212,7 +213,11 @@ const ant_channel_config_t  ant_rx_channel_config = HRM_RX_CHANNEL_CONFIG(HRM_RX
 const ant_channel_config_t  ant_rx_channel_config2 = CAD_RX_CHANNEL_CONFIG(CAD_RX_CHANNEL_NUMBER, WILDCARD_TRANSMISSION_TYPE,
                                                     CAD_DEVICE_NUMBER, ANTPLUS_NETWORK_NUMBER, CAD_MSG_PERIOD);
 
+#if (LEDS_NUMBER > 0)
 const uint8_t leds_list[LEDS_NUMBER] = LEDS_LIST;
+#else
+const uint8_t leds_list;
+#endif
 
 static char notif_message[BLE_ANCS_ATTR_DATA_MAX];
 static char notif_title  [BLE_ANCS_ATTR_DATA_MAX];
@@ -415,7 +420,11 @@ static void notif_print(ble_ancs_c_evt_notif_t * p_notif)
 	  memset(m_attr_message, 0, ATTR_DATA_SIZE*sizeof(char));
 	
 	  // BSP_LED_0_MASK  BSP_LED_1_MASK BSP_LED_2_MASK
-    LEDS_INVERT(BSP_LED_0_MASK);
+    LEDS_ON(BSP_LED_0_MASK);
+#ifndef BSP_SIMPLE
+    nrf_delay_ms(200);
+#endif
+    LEDS_OFF(BSP_LED_0_MASK);
 
 	  return;
 }
@@ -767,7 +776,7 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
             APP_ERROR_CHECK(err_code);
 				
 				    // BSP_LED_0_MASK  BSP_LED_1_MASK BSP_LED_2_MASK
-            LEDS_ON(BSP_LED_1_MASK);
+            LEDS_OFF(BSP_LED_1_MASK);
 
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
             break;
@@ -781,8 +790,8 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
         
             err_code = app_timer_stop(m_sec_ping);
             APP_ERROR_CHECK(err_code);
-        
-            while (1) {
+            uint8_t var = 20;
+            while (var--) {
               nrf_delay_ms(200);
               LEDS_INVERT(BSP_LED_1_MASK);
             }
@@ -848,7 +857,7 @@ static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
     ble_db_discovery_on_ble_evt(&m_ble_db_discovery, p_ble_evt);
     ble_conn_params_on_ble_evt(p_ble_evt);
     ble_ancs_c_on_ble_evt(&m_ancs_c, p_ble_evt);
-    bsp_btn_ble_on_ble_evt(p_ble_evt);
+    //bsp_btn_ble_on_ble_evt(p_ble_evt);
     on_ble_evt(p_ble_evt);
     ble_advertising_on_ble_evt(p_ble_evt);
 }
@@ -883,8 +892,12 @@ static void ble_stack_init(void)
     ble_enable_params_t ble_enable_params;
     memset(&ble_enable_params, 0, sizeof(ble_enable_params));
 
-#ifdef S130
+#if defined(S110) || defined(S130) || defined(S310)
+    // Enable BLE stack.
+#if defined(S130) || defined(S310)
     ble_enable_params.gatts_enable_params.attr_tab_size   = BLE_GATTS_ATTR_TAB_SIZE_DEFAULT;
+#endif
+    ble_enable_params.gatts_enable_params.service_changed = IS_SRVC_CHANGED_CHARACT_PRESENT;
 #endif
 
     err_code = sd_ble_enable(&ble_enable_params);
@@ -1125,10 +1138,17 @@ int main(void)
     LOG("ANT ANCS\n");
 
     ant_profile_setup();
+    
+
 
     // Start execution.
     err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
     APP_ERROR_CHECK(err_code);
+    
+    LEDS_OFF(LEDS_MASK);
+    
+    // BSP_LED_0_MASK  BSP_LED_1_MASK BSP_LED_2_MASK
+    LEDS_ON(BSP_LED_1_MASK);
 		
 
     // Enter main loop.
