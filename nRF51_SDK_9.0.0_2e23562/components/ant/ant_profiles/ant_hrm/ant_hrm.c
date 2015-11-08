@@ -44,6 +44,8 @@ typedef struct
 STATIC_ASSERT( sizeof(ant_hrm_tx_cb_t) == HRM_TX_CB_SIZE);
 /*lint -restore */ 
 
+static uint8_t beat_count_prev = 0;
+
 uint32_t ant_hrm_init(ant_hrm_profile_t * p_profile, ant_channel_config_t const * p_channel_config,
                       ant_hrm_tx_config_t const * p_tx_config)
 {
@@ -122,7 +124,7 @@ static void encode_tx_message(ant_hrm_profile_t * p_profile, uint8_t * p_message
     
     p_hrm_message_payload->toggle_bit  = p_hrm_cb->toggle_bit;
 
-    LOG_ANT("HRM TX Page number:               %u\r\n", p_hrm_message_payload->page_number);
+    LOG_ANT("HRM TX Page number:    %u\r\n", p_hrm_message_payload->page_number);
 
     ant_hrm_page_0_encode(p_hrm_message_payload->page_payload, &(p_profile->page_0)); // Page 0 is present in each message
 
@@ -185,6 +187,7 @@ static void decode_hrm_rx_message(ant_hrm_profile_t * p_profile, uint8_t * p_mes
     uint16_t curBeatTime;
     uint16_t prevBeatTime;
     uint16_t rrInterval_ms;
+    uint8_t beat_count;
   
     const ant_hrm_message_layout_t * p_hrm_message_payload  = (ant_hrm_message_layout_t *)p_message_payload;
 
@@ -192,6 +195,7 @@ static void decode_hrm_rx_message(ant_hrm_profile_t * p_profile, uint8_t * p_mes
 
     ant_hrm_page_0_decode(p_hrm_message_payload->page_payload, &(p_profile->page_0)); // Page 0 is present in each message
 
+    beat_count = p_profile->page_0.beat_count;
     curBeatTime = p_profile->page_0.beat_time;
   
     switch (p_hrm_message_payload->page_number)
@@ -218,9 +222,13 @@ static void decode_hrm_rx_message(ant_hrm_profile_t * p_profile, uint8_t * p_mes
             prevBeatTime = p_profile->page_4.prev_beat;
             rrInterval = curBeatTime - prevBeatTime;
             rrInterval_ms = rrInterval * 1000. / 1024.;
-            printf("$HRM,%u,%u\n\r",
+            if (beat_count != beat_count_prev) {
+              rrInterval_ms /= (beat_count - beat_count_prev);
+              beat_count_prev = beat_count;
+              printf("$HRM,%u,%u\n\r",
                       (unsigned int)p_profile->page_0.computed_heart_rate,
                       (unsigned int)rrInterval_ms);
+            }
             break;
 
         default:

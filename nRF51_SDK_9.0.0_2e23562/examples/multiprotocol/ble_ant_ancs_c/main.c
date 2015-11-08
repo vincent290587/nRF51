@@ -66,7 +66,7 @@
 #define IS_SRVC_CHANGED_CHARACT_PRESENT 1
 
 // Multiple ANT channel settings
-#define ANT_STACK_TOTAL_CHANNELS_ALLOCATED  3               // (SIZE_OF_NONENCRYPTED_ANT_CHANNEL bytes)
+#define ANT_STACK_TOTAL_CHANNELS_ALLOCATED  4               // (SIZE_OF_NONENCRYPTED_ANT_CHANNEL bytes)
 #define ANT_STACK_ENCRYPTED_CHANNELS        0               // (SIZE_OF_ENCRYPTED_ANT_CHANNEL bytes)
 #define ANT_STACK_TX_BURST_QUEUE_SIZE       128             // (128 bytes)
 
@@ -75,15 +75,15 @@
 #define CAD_RX_CHANNEL_NUMBER       0x01
 
 #define WILDCARD_TRANSMISSION_TYPE  0x00                        /**< Wildcard transmission type. */
-#define WILDCARD_DEVICE_NUMBER      0x00                        /**< Wildcard device number. */
-#define HRM_DEVICE_NUMBER      0x00                        
-#define CAD_DEVICE_NUMBER      0x00                        
+#define WILDCARD_DEVICE_NUMBER      0x0000                        /**< Wildcard device number. */
+#define HRM_DEVICE_NUMBER      0x0D22                        
+#define CAD_DEVICE_NUMBER      0xB02B                      
 
 #define ANTPLUS_NETWORK_NUMBER      0x00                        /**< Network number. */
 #define HRMRX_NETWORK_KEY           {0xB9, 0xA5, 0x21, 0xFB, 0xBD, 0x72, 0xC3, 0x45}    /**< The default network key used. */
 
 #define UART_TX_BUF_SIZE                1024                                        /**< UART TX buffer size. */
-#define UART_RX_BUF_SIZE                1                                           /**< UART RX buffer size. */
+#define UART_RX_BUF_SIZE                1                                          /**< UART RX buffer size. */
 
 #define ATTR_DATA_SIZE                  BLE_ANCS_ATTR_DATA_MAX                      /**< Allocated size for attribute data. */
 
@@ -213,6 +213,9 @@ const ant_channel_config_t  ant_rx_channel_config = HRM_RX_CHANNEL_CONFIG(HRM_RX
 const ant_channel_config_t  ant_rx_channel_config2 = CAD_RX_CHANNEL_CONFIG(CAD_RX_CHANNEL_NUMBER, WILDCARD_TRANSMISSION_TYPE,
                                                     CAD_DEVICE_NUMBER, ANTPLUS_NETWORK_NUMBER, CAD_MSG_PERIOD);
 
+static uint8_t is_hrm_init = 0;
+static uint8_t is_cad_init = 0;
+
 #if (LEDS_NUMBER > 0)
 const uint8_t leds_list[LEDS_NUMBER] = LEDS_LIST;
 #else
@@ -221,6 +224,9 @@ const uint8_t leds_list;
 
 static char notif_message[BLE_ANCS_ATTR_DATA_MAX];
 static char notif_title  [BLE_ANCS_ATTR_DATA_MAX];
+
+static uint8_t read_byte[100];
+static uint16_t status_byte;
 
 /**@brief Callback function for handling asserts in the SoftDevice.
  *
@@ -239,17 +245,61 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
 }
 
 
+
+uint8_t encode (uint8_t byte) {
+  
+   switch (byte) {
+     case '$':
+       status_byte = 0;
+       memset(read_byte, 0, sizeof(read_byte));
+     
+       break;
+     case '\n':
+       LOG("%s\n\r", read_byte);
+       status_byte = 0;
+       memset(read_byte, 0, sizeof(read_byte));
+       return 1;
+     
+       break;
+     default:
+       if (status_byte < sizeof(read_byte)) {
+         read_byte[status_byte] = byte;
+         status_byte++;
+       }
+       break;
+   }
+  
+   return 0;
+}
+
+void transmit_order () {
+  
+}
+
+
 void uart_error_handle(app_uart_evt_t * p_event)
 {
+    uint8_t read_byte = 0;
+  
+    if (p_event->evt_type == APP_UART_DATA_READY)
+    {
+      // get data
+      while(app_uart_get(&read_byte) != NRF_SUCCESS) {;}
+      if (encode(read_byte)) {
+        transmit_order ();
+      }
+      
+    }
+  
     if (0) {
-    if (p_event->evt_type == APP_UART_COMMUNICATION_ERROR)
-    {
+      if (p_event->evt_type == APP_UART_COMMUNICATION_ERROR)
+      {
         APP_ERROR_HANDLER(p_event->data.error_communication);
-    }
-    else if (p_event->evt_type == APP_UART_FIFO_ERROR)
-    {
+      }
+      else if (p_event->evt_type == APP_UART_FIFO_ERROR)
+      {
         APP_ERROR_HANDLER(p_event->data.error_code);
-    }
+      }
     }
 }
 
@@ -272,10 +322,22 @@ static void cad_connect(void * p_context)
 void ant_evt_cad (ant_evt_t * p_ant_evt)
 {
     uint32_t err_code = NRF_SUCCESS;
+    
+    uint16_t pusDeviceNumber = 0;
+    uint8_t pucDeviceType    = 0;
+    uint8_t pucTransmitType  = 0;
+	
 
     switch (p_ant_evt->event)
 					{
 							case EVENT_RX:
+                  if (!is_cad_init) {
+                    sd_ant_channel_id_get (CAD_RX_CHANNEL_NUMBER, 
+                          &pusDeviceNumber, &pucDeviceType, &pucTransmitType);
+                    printf("$ANCS,0,CAD 0x%x connected\n\r", pusDeviceNumber);
+                    if (pusDeviceNumber) is_cad_init = 1;
+                  }
+              
 									break;
 							case EVENT_RX_FAIL:
 									break;
@@ -284,6 +346,8 @@ void ant_evt_cad (ant_evt_t * p_ant_evt)
 							case EVENT_CHANNEL_CLOSED:
 							case EVENT_RX_SEARCH_TIMEOUT:
                   LOG("Reconnexion CAD...\n\r");
+                  is_cad_init = 0;
+                  err_code = app_timer_stop(m_sec_cad);
 									err_code = app_timer_start(m_sec_cad, ANT_DELAY, NULL);
 									break;
 					}
@@ -294,10 +358,21 @@ void ant_evt_cad (ant_evt_t * p_ant_evt)
 void ant_evt_hrm (ant_evt_t * p_ant_evt)
 {
     uint32_t err_code = NRF_SUCCESS;
+    
+    uint16_t pusDeviceNumber = 0;
+    uint8_t pucDeviceType    = 0;
+    uint8_t pucTransmitType  = 0;
 
     switch (p_ant_evt->event)
 					{
 							case EVENT_RX:
+                  if (!is_hrm_init) {
+                    sd_ant_channel_id_get (HRM_RX_CHANNEL_NUMBER, 
+                          &pusDeviceNumber, &pucDeviceType, &pucTransmitType);
+                    printf("$ANCS,0,HRM 0x%x connected\n\r", pusDeviceNumber);
+                    if (pusDeviceNumber) is_hrm_init = 1;
+                  }
+      
 									break;
 							case EVENT_RX_FAIL:
 									break;
@@ -306,6 +381,8 @@ void ant_evt_hrm (ant_evt_t * p_ant_evt)
 							case EVENT_CHANNEL_CLOSED:
 							case EVENT_RX_SEARCH_TIMEOUT:
                   LOG("Reconnexion HRM...\n\r");
+                  is_hrm_init = 0;
+                  err_code = app_timer_stop(m_sec_hrm);
 									err_code = app_timer_start(m_sec_hrm, ANT_DELAY, NULL);
                   break;
 					}
@@ -324,15 +401,17 @@ void ant_evt_hrm (ant_evt_t * p_ant_evt)
  */
 void ant_evt_dispatch(ant_evt_t * p_ant_evt)
 {
-	
+
 	  switch(p_ant_evt->channel) {
 			case HRM_RX_CHANNEL_NUMBER:
 				ant_evt_hrm (p_ant_evt);
         ant_hrm_rx_evt_handle(&m_ant_hrm, p_ant_evt);
+      
 				break;
 			case CAD_RX_CHANNEL_NUMBER:
 				ant_evt_cad (p_ant_evt);
         ant_cad_rx_evt_handle(&m_ant_cad, p_ant_evt);
+      
 				break;
 			default:
 				break;
@@ -406,8 +485,8 @@ static void apple_notification_setup(void)
 static void notif_print(ble_ancs_c_evt_notif_t * p_notif)
 {
     LOG("\n\rNotification\n\r");
-    LOG("Event:       %s\n", lit_eventid[p_notif->evt_id]);
-    LOG("Category ID: %s\n\r\n\r", lit_catid[p_notif->category_id]);
+    LOG("Event %d :       %s\n", p_notif->evt_id, lit_eventid[p_notif->evt_id]);
+    LOG("Category ID %d: %s\n\r\n\r", p_notif->category_id, lit_catid[p_notif->category_id]);
     //LOG("Category Cnt:%u\n", (unsigned int) p_notif->category_count);
     //LOG("UID:         %u\n\r", (unsigned int) p_notif->notif_uid);
 	
@@ -415,7 +494,13 @@ static void notif_print(ble_ancs_c_evt_notif_t * p_notif)
 	  //LOG("Subtitle  : %s\n", m_attr_subtitle);
 	  //LOG("Message   : %s\n\r", m_attr_message);
 
-	  attr_to_print = 2;
+    attr_to_print = 2;
+    if (p_notif->evt_id == 0 && 
+         (p_notif->category_id == 1 ||
+          p_notif->category_id == 2 ||
+          p_notif->category_id == 3)) {
+	    printf("$ANCS,1, ,%s\n\r", lit_catid[p_notif->category_id]);
+    }
 	
 	  memset(m_attr_title  , 0, ATTR_DATA_SIZE*sizeof(char));
 	  memset(m_attr_message, 0, ATTR_DATA_SIZE*sizeof(char));
@@ -441,7 +526,10 @@ static void notif_attr_print(ble_ancs_c_evt_notif_attr_t * p_attr,
                              ble_ancs_c_attr_list_t      * ancs_attr_list)
 {
 
-	
+	  LOG("\n\rNotif_attr_print\n\r");
+  
+    LOG("attr_to_print: %d\n\r", attr_to_print);
+  
     if (p_attr->attr_len != 0)
     {
         LOG("%s: %s\n\r",
@@ -465,13 +553,25 @@ static void notif_attr_print(ble_ancs_c_evt_notif_attr_t * p_attr,
         p_attr->attr_len > ATTR_DATA_SIZE ? ATTR_DATA_SIZE : p_attr->attr_len);
     }
     
+    char *pos;
+    pos = strstr(notif_message, "$");
+    if (pos != 0) {
+      *pos = 0;
+    }
+    pos = strstr(notif_message, "@");
+    if (pos != 0) {
+      *pos = 0;
+    }
+    
     if (p_attr->attr_id==1 || p_attr->attr_id==3) {
       if (attr_to_print==1) {
 		    attr_to_print = 0;
         // on sort la notif
         printf("$ANCS,1,%s,%s\n\r", notif_title, notif_message);
-	    } else if (attr_to_print) {
+	    } else if (attr_to_print > 0) {
         attr_to_print -= 1;
+      } else {
+        attr_to_print = 0;
       }
     }
     
@@ -770,7 +870,7 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
     switch (p_ble_evt->header.evt_id)
     {
         case BLE_GAP_EVT_CONNECTED:
-            printf("@ANCS,0,Connected\n\r");
+            printf("$ANCS,0,ANCS connected\n\r");
             err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
             APP_ERROR_CHECK(err_code);
 
@@ -784,7 +884,8 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
             break;
 
         case BLE_GAP_EVT_DISCONNECTED:
-            printf("@ANCS,0,Disconnected\n\r");
+            printf("$ANCS,0,ANCS disconnected\n\r");
+            app_uart_flush();
             m_conn_handle = BLE_CONN_HANDLE_INVALID;
 				
 				    // BSP_LED_0_MASK  BSP_LED_1_MASK BSP_LED_2_MASK
@@ -793,11 +894,14 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
             err_code = app_timer_stop(m_sec_ping);
             APP_ERROR_CHECK(err_code);
             
+#ifndef BSP_SIMPLE
             while (var--) {
               nrf_delay_ms(200);
               LEDS_INVERT(BSP_LED_1_MASK);
             }
-
+#else
+            nrf_delay_ms(200);
+#endif
             break;
 
         case BLE_GATTC_EVT_TIMEOUT:
