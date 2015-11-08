@@ -241,7 +241,7 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
 
 void uart_error_handle(app_uart_evt_t * p_event)
 {
-    return;
+    if (0) {
     if (p_event->evt_type == APP_UART_COMMUNICATION_ERROR)
     {
         APP_ERROR_HANDLER(p_event->data.error_communication);
@@ -249,6 +249,7 @@ void uart_error_handle(app_uart_evt_t * p_event)
     else if (p_event->evt_type == APP_UART_FIFO_ERROR)
     {
         APP_ERROR_HANDLER(p_event->data.error_code);
+    }
     }
 }
 
@@ -413,12 +414,12 @@ static void notif_print(ble_ancs_c_evt_notif_t * p_notif)
 	  //LOG("Title     : %s\n", m_attr_title);
 	  //LOG("Subtitle  : %s\n", m_attr_subtitle);
 	  //LOG("Message   : %s\n\r", m_attr_message);
-	
+
 	  attr_to_print = 2;
 	
 	  memset(m_attr_title  , 0, ATTR_DATA_SIZE*sizeof(char));
 	  memset(m_attr_message, 0, ATTR_DATA_SIZE*sizeof(char));
-	
+
 	  // BSP_LED_0_MASK  BSP_LED_1_MASK BSP_LED_2_MASK
     LEDS_ON(BSP_LED_0_MASK);
 #ifndef BSP_SIMPLE
@@ -468,7 +469,7 @@ static void notif_attr_print(ble_ancs_c_evt_notif_attr_t * p_attr,
       if (attr_to_print==1) {
 		    attr_to_print = 0;
         // on sort la notif
-        printf("@%s@%s\n\r", notif_title, notif_message);
+        printf("$ANCS,1,%s,%s\n\r", notif_title, notif_message);
 	    } else if (attr_to_print) {
         attr_to_print -= 1;
       }
@@ -764,11 +765,12 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
 static void on_ble_evt(ble_evt_t * p_ble_evt)
 {
     uint32_t err_code = NRF_SUCCESS;
+    uint8_t var = 20;
 
     switch (p_ble_evt->header.evt_id)
     {
         case BLE_GAP_EVT_CONNECTED:
-            printf("@Connected\n\r");
+            printf("@ANCS,0,Connected\n\r");
             err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
             APP_ERROR_CHECK(err_code);
 
@@ -782,7 +784,7 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
             break;
 
         case BLE_GAP_EVT_DISCONNECTED:
-            printf("@Disconnected\n\r");
+            printf("@ANCS,0,Disconnected\n\r");
             m_conn_handle = BLE_CONN_HANDLE_INVALID;
 				
 				    // BSP_LED_0_MASK  BSP_LED_1_MASK BSP_LED_2_MASK
@@ -790,7 +792,7 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
         
             err_code = app_timer_stop(m_sec_ping);
             APP_ERROR_CHECK(err_code);
-            uint8_t var = 20;
+            
             while (var--) {
               nrf_delay_ms(200);
               LEDS_INVERT(BSP_LED_1_MASK);
