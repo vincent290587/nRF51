@@ -13,7 +13,7 @@
 #define CAD_ANTPLUS_RF_FREQ 0x39u                       ///< Frequency, decimal 57 (2457 MHz).
 
 #define CAD_EXT_ASSIGN      0x00 
-#define CAD_MSG_PERIOD  0x1F86u
+#define CAD_MSG_PERIOD      0x1F86u
 
 
 #define CAD_RX_CHANNEL_CONFIG(CHANNEL_NUMBER, TRANSMISSION_TYPE, DEVICE_NUMBER, NETWORK_NUMBER, HRM_MSG_PERIOD) \

@@ -60,6 +60,7 @@
 #include "ant_stack_config.h"
 #include "ant_hrm.h"
 #include "ant_cad.h"
+#include "ant_glasses.h"
 #include "ant_interface.h"
 #include "ant_state_indicator.h"
 
@@ -73,11 +74,12 @@
 
 #define HRM_RX_CHANNEL_NUMBER       0x00                        /**< Channel number assigned to HRM profile. */
 #define CAD_RX_CHANNEL_NUMBER       0x01
+#define GLASSES_TX_CHANNEL_NUMBER   0x02
 
 #define WILDCARD_TRANSMISSION_TYPE  0x00                        /**< Wildcard transmission type. */
 #define WILDCARD_DEVICE_NUMBER      0x0000                        /**< Wildcard device number. */
-#define HRM_DEVICE_NUMBER      0x0D22                        
-#define CAD_DEVICE_NUMBER      0xB02B                      
+#define HRM_DEVICE_NUMBER           0x0D22                        
+#define CAD_DEVICE_NUMBER           0xB02B                      
 
 #define ANTPLUS_NETWORK_NUMBER      0x00                        /**< Network number. */
 #define HRMRX_NETWORK_KEY           {0xB9, 0xA5, 0x21, 0xFB, 0xBD, 0x72, 0xC3, 0x45}    /**< The default network key used. */
@@ -207,11 +209,15 @@ static uint8_t m_network_key[] = HRMRX_NETWORK_KEY;             /**< ANT PLUS ne
 /** @snippet [ANT HRM RX Instance] */
 ant_hrm_profile_t           m_ant_hrm;
 ant_cad_profile_t           m_ant_cad;
+ant_glasses_profile_t       m_ant_glasses;
 const ant_channel_config_t  ant_rx_channel_config = HRM_RX_CHANNEL_CONFIG(HRM_RX_CHANNEL_NUMBER, WILDCARD_TRANSMISSION_TYPE,
                                                     HRM_DEVICE_NUMBER, ANTPLUS_NETWORK_NUMBER, HRM_MSG_PERIOD_4Hz);
 
 const ant_channel_config_t  ant_rx_channel_config2 = CAD_RX_CHANNEL_CONFIG(CAD_RX_CHANNEL_NUMBER, WILDCARD_TRANSMISSION_TYPE,
                                                     CAD_DEVICE_NUMBER, ANTPLUS_NETWORK_NUMBER, CAD_MSG_PERIOD);
+
+const ant_channel_config_t  ant_tx_channel_config  = GLASSES_TX_CHANNEL_CONFIG(GLASSES_TX_CHANNEL_NUMBER, 5,
+                                                    GLASSES_DEVICE_NUMBER, ANTPLUS_NETWORK_NUMBER);
 
 static uint8_t is_hrm_init = 0;
 static uint8_t is_cad_init = 0;
@@ -226,6 +232,7 @@ static char notif_message[BLE_ANCS_ATTR_DATA_MAX];
 static char notif_title  [BLE_ANCS_ATTR_DATA_MAX];
 
 static uint8_t read_byte[100];
+static uint8_t glasses_payload[8];
 static uint16_t status_byte;
 
 /**@brief Callback function for handling asserts in the SoftDevice.
@@ -251,20 +258,21 @@ uint8_t encode (uint8_t byte) {
    switch (byte) {
      case '$':
        status_byte = 0;
-       memset(read_byte, 0, sizeof(read_byte));
+       //memset(read_byte, 0, sizeof(read_byte));
      
        break;
      case '\n':
        LOG("%s\n\r", read_byte);
        status_byte = 0;
-       memset(read_byte, 0, sizeof(read_byte));
+       //memset(read_byte, 0, sizeof(read_byte));
        return 1;
      
-       break;
      default:
-       if (status_byte < sizeof(read_byte)) {
+       if (status_byte < sizeof(read_byte) - 10) {
          read_byte[status_byte] = byte;
          status_byte++;
+       } else {
+         status_byte = 0;
        }
        break;
    }
@@ -272,8 +280,10 @@ uint8_t encode (uint8_t byte) {
    return 0;
 }
 
+
 void transmit_order () {
-  
+   // pass-through
+   memcpy(glasses_payload, read_byte, 8*sizeof(uint8_t));
 }
 
 
@@ -317,6 +327,31 @@ static void cad_connect(void * p_context)
   
   err_code = ant_cad_open(&m_ant_cad);
   APP_ERROR_CHECK(err_code);
+}
+
+
+void ant_evt_glasses (ant_evt_t * p_ant_evt)
+{
+    uint32_t err_code = NRF_SUCCESS;
+    
+    switch (p_ant_evt->event)
+					{
+							case EVENT_TX:
+                  ant_glasses_tx_evt_handle(&m_ant_glasses, p_ant_evt, glasses_payload);
+                  printf("Envoi au lunettes: %s\n\r", glasses_payload);
+									break;
+              case EVENT_RX:
+									break;
+							case EVENT_RX_FAIL:
+									break;
+							case EVENT_RX_FAIL_GO_TO_SEARCH:
+									break;
+							case EVENT_CHANNEL_CLOSED:
+							case EVENT_RX_SEARCH_TIMEOUT:
+									break;
+					}
+          
+    APP_ERROR_CHECK(err_code);
 }
 
 void ant_evt_cad (ant_evt_t * p_ant_evt)
@@ -406,13 +441,17 @@ void ant_evt_dispatch(ant_evt_t * p_ant_evt)
 			case HRM_RX_CHANNEL_NUMBER:
 				ant_evt_hrm (p_ant_evt);
         ant_hrm_rx_evt_handle(&m_ant_hrm, p_ant_evt);
-      
 				break;
+      
 			case CAD_RX_CHANNEL_NUMBER:
 				ant_evt_cad (p_ant_evt);
         ant_cad_rx_evt_handle(&m_ant_cad, p_ant_evt);
-      
 				break;
+      
+      case GLASSES_TX_CHANNEL_NUMBER:
+        ant_evt_glasses (p_ant_evt);
+        break;
+      
 			default:
 				break;
 		}
@@ -865,7 +904,7 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
 static void on_ble_evt(ble_evt_t * p_ble_evt)
 {
     uint32_t err_code = NRF_SUCCESS;
-    uint8_t var = 20;
+    
 
     switch (p_ble_evt->header.evt_id)
     {
@@ -885,7 +924,7 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
 
         case BLE_GAP_EVT_DISCONNECTED:
             printf("$ANCS,0,ANCS disconnected\n\r");
-            app_uart_flush();
+            
             m_conn_handle = BLE_CONN_HANDLE_INVALID;
 				
 				    // BSP_LED_0_MASK  BSP_LED_1_MASK BSP_LED_2_MASK
@@ -895,6 +934,7 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
             APP_ERROR_CHECK(err_code);
             
 #ifndef BSP_SIMPLE
+            uint8_t var = 20;
             while (var--) {
               nrf_delay_ms(200);
               LEDS_INVERT(BSP_LED_1_MASK);
@@ -1038,6 +1078,7 @@ static void ant_profile_setup(void)
 /** @snippet [ANT HRM RX Profile Setup] */
     uint32_t err_code;
         
+    // HRM
     err_code = ant_hrm_init(&m_ant_hrm, &ant_rx_channel_config, NULL);
     APP_ERROR_CHECK(err_code);
 
@@ -1050,6 +1091,14 @@ static void ant_profile_setup(void)
     APP_ERROR_CHECK(err_code);
 
     err_code = ant_cad_open(&m_ant_cad);
+    APP_ERROR_CHECK(err_code);
+  
+  
+    // GLASSES
+    err_code = ant_glasses_init(&m_ant_glasses, &ant_tx_channel_config);
+    APP_ERROR_CHECK(err_code);
+
+    err_code = ant_glasses_open(&m_ant_glasses);
     APP_ERROR_CHECK(err_code);
 
 /** @snippet [ANT HRM RX Profile Setup] */
@@ -1245,8 +1294,6 @@ int main(void)
 
     ant_profile_setup();
     
-
-
     // Start execution.
     err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
     APP_ERROR_CHECK(err_code);
