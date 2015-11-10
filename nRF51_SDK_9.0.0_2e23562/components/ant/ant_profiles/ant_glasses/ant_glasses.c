@@ -1,5 +1,5 @@
 
-
+#include <string.h>
 #include "nrf_assert.h"
 #include "app_error.h"
 #include "ant_interface.h"
@@ -59,18 +59,26 @@ void ant_glasses_tx_evt_handle(ant_glasses_profile_t * p_profile, ant_evt_t * p_
     }
 }
 
-static void decode_glasses_rx_message(ant_glasses_profile_t * p_profile, uint8_t * p_message_payload)
+static void decode_glasses_rx_message(ant_glasses_profile_t * p_profile, uint8_t * p_message_payload, ant_glasses_trans *trans)
 {
-  LOG_ANT("GLASSES message\r\n");
+  uint8_t i;
+  float tmp;
   
-  const ant_glasses_data_layout_t *payload  = (ant_glasses_data_layout_t *)p_message_payload;
+  const ant_glasses_data_layout_t *msg  = (ant_glasses_data_layout_t *)p_message_payload;
   
-  // action
+  memcpy(&tmp, msg->avance, sizeof(float));
   
+  if (trans) {
+    trans->led_mask = msg->led_mask[0];
+    trans->avance = tmp;
+  }
+  
+  LOG_ANT("Message: mask/%d avance/%.2f\n\r", msg->led_mask[0], tmp);
+
   return;
 }
 
-void ant_glasses_rx_evt_handle(ant_glasses_profile_t * p_profile, ant_evt_t * p_ant_event)
+void ant_glasses_rx_evt_handle(ant_glasses_profile_t * p_profile, ant_evt_t * p_ant_event, ant_glasses_trans *trans)
 {
    ANT_MESSAGE * p_message = (ANT_MESSAGE *)p_ant_event->evt_buffer;
   
@@ -82,7 +90,7 @@ void ant_glasses_rx_evt_handle(ant_glasses_profile_t * p_profile, ant_evt_t * p_
                     case MESG_BROADCAST_DATA_ID:
                     case MESG_ACKNOWLEDGED_DATA_ID:
                     case MESG_BURST_DATA_ID:
-                        decode_glasses_rx_message(p_profile, p_message->ANT_MESSAGE_aucPayload);
+                        decode_glasses_rx_message(p_profile, p_message->ANT_MESSAGE_aucPayload, trans);
                     break;
 
                   default:

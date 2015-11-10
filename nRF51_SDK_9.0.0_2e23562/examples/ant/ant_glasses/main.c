@@ -57,21 +57,17 @@
 #define APP_TIMER_MAX_TIMERS            10                  /**< Maximum number of simultaneously created timers. */
 #define APP_TIMER_OP_QUEUE_SIZE         5                                           /**< Size of timer operation queues. */
 
+#define ANT_DELAY                      APP_TIMER_TICKS(2000, APP_TIMER_PRESCALER)
 
 // Multiple ANT channel settings
 #define ANT_STACK_TOTAL_CHANNELS_ALLOCATED  2               // (SIZE_OF_NONENCRYPTED_ANT_CHANNEL bytes)
 #define ANT_STACK_ENCRYPTED_CHANNELS        0               // (SIZE_OF_ENCRYPTED_ANT_CHANNEL bytes)
 #define ANT_STACK_TX_BURST_QUEUE_SIZE       128             // (128 bytes)
 
-
-#define HRM_RX_CHANNEL_NUMBER       0x00                        /**< Channel number assigned to HRM profile. */
-#define CAD_RX_CHANNEL_NUMBER       0x01
 #define GLASSES_RX_CHANNEL_NUMBER   0x00
 
 #define WILDCARD_TRANSMISSION_TYPE  0x00                        /**< Wildcard transmission type. */
-#define WILDCARD_DEVICE_NUMBER      0x0000                        /**< Wildcard device number. */
-#define HRM_DEVICE_NUMBER           0x0D22                        
-#define CAD_DEVICE_NUMBER           0xB02B                      
+#define WILDCARD_DEVICE_NUMBER      0x0000                        /**< Wildcard device number. */                 
 
 #define ANTPLUS_NETWORK_NUMBER      0x00                        /**< Network number. */
 #define HRMRX_NETWORK_KEY           {0xB9, 0xA5, 0x21, 0xFB, 0xBD, 0x72, 0xC3, 0x45}    /**< The default network key used. */
@@ -92,16 +88,19 @@
 #define LOG(...)
 #endif // TRACE_HRM_GENERAL_ENABLE 
 
+static uint8_t m_network_key[] = HRMRX_NETWORK_KEY;             /**< ANT PLUS network key. */
 
-
+// timer
+static app_timer_id_t       m_sec_glasses;
+static app_timer_id_t       m_sec_leds;
 
 /** @snippet [ANT HRM RX Instance] */
 ant_glasses_profile_t       m_ant_glasses;
 
-const ant_channel_config_t  ant_rx_channel_config  = GLASSES_TX_CHANNEL_CONFIG(GLASSES_RX_CHANNEL_NUMBER, WILDCARD_TRANSMISSION_TYPE,
+const ant_channel_config_t  ant_rx_channel_config  = GLASSES_RX_CHANNEL_CONFIG(GLASSES_RX_CHANNEL_NUMBER, WILDCARD_TRANSMISSION_TYPE,
                                                     GLASSES_DEVICE_NUMBER, ANTPLUS_NETWORK_NUMBER);
 
-
+uint8_t is_glasses_init = 0;
 
 #if (LEDS_NUMBER > 0)
 const uint8_t leds_list[LEDS_NUMBER] = LEDS_LIST;
@@ -109,10 +108,10 @@ const uint8_t leds_list[LEDS_NUMBER] = LEDS_LIST;
 const uint8_t leds_list;
 #endif
 
+static uint32_t last_maj = 0;
+static float led_period;
+static uint8_t led_mask;
 
-static uint8_t read_byte[100];
-static uint8_t glasses_payload[8];
-static uint16_t status_byte;
 
 /**@brief Callback function for handling asserts in the SoftDevice.
  *
@@ -127,59 +126,13 @@ static uint16_t status_byte;
  */
 void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
 {
-    app_error_handler(DEAD_BEEF, line_num, p_file_name);
+  app_error_handler(DEAD_BEEF, line_num, p_file_name);
 }
 
-
-
-uint8_t encode (uint8_t byte) {
-  
-   switch (byte) {
-     case '$':
-       status_byte = 0;
-       //memset(read_byte, 0, sizeof(read_byte));
-     
-       break;
-     case '\n':
-       LOG("%s\n\r", read_byte);
-       status_byte = 0;
-       //memset(read_byte, 0, sizeof(read_byte));
-       return 1;
-     
-     default:
-       if (status_byte < sizeof(read_byte) - 10) {
-         read_byte[status_byte] = byte;
-         status_byte++;
-       } else {
-         status_byte = 0;
-       }
-       break;
-   }
-  
-   return 0;
-}
-
-
-void transmit_order () {
-   // pass-through
-   memcpy(glasses_payload, read_byte, 8*sizeof(uint8_t));
-}
 
 
 void uart_error_handle(app_uart_evt_t * p_event)
 {
-    uint8_t read_byte = 0;
-  
-    if (p_event->evt_type == APP_UART_DATA_READY)
-    {
-      // get data
-      while(app_uart_get(&read_byte) != NRF_SUCCESS) {;}
-      if (encode(read_byte)) {
-        transmit_order ();
-      }
-      
-    }
-  
     if (0) {
       if (p_event->evt_type == APP_UART_COMMUNICATION_ERROR)
       {
@@ -188,29 +141,92 @@ void uart_error_handle(app_uart_evt_t * p_event)
       else if (p_event->evt_type == APP_UART_FIFO_ERROR)
       {
         APP_ERROR_HANDLER(p_event->data.error_code);
+      } else if (p_event->evt_type == APP_UART_DATA_READY)
+      {
+  
       }
     }
+}
+
+float min(float val1, float val2) {
+  if (val1 <= val2) return val1;
+  else return val2;
+}
+
+float max(float val1, float val2) {
+  if (val1 <= val2) return val2;
+  else return val1;
+}
+
+float regFenLim(float val_, float b1_i, float b1_f, float b2_i, float b2_f) {
+  
+  float x, res;
+  // calcul x
+  x = (val_ - b1_i) / (b1_f - b1_i);
+  
+  // calcul valeur: x commun
+  res = x * (b2_f - b2_i) + b2_i;
+  if (res < min(b2_i,b2_f)) res = min(b2_i,b2_f);
+  if (res > max(b2_i,b2_f)) res = max(b2_i,b2_f);
+  return res;
+}
+
+void action_reception(ant_glasses_trans *trans)
+{
+  uint32_t err_code = NRF_SUCCESS;
+  uint8_t is_led_off = 0;
+  
+  LOG("Action %d %f\n\r", trans->led_mask, trans->avance);
+  
+  led_period = trans->avance;
+  led_mask = 1<<leds_list[trans->led_mask];
+  
+  if (led_period < 0.4) {
+    led_period = regFenLim(led_period, 0., 0.35, 100., 2500.);
+  } else {
+    is_led_off = 1;
+  }
+  
+  last_maj += 1;
+  
+  if (last_maj == 15) {
+    err_code = app_timer_stop(m_sec_leds);
+    LEDS_ON(LEDS_MASK);
+  } else if (last_maj > 15 && is_led_off == 0) {
+    LOG("LED timer start\n\r");
+    err_code = app_timer_start(m_sec_leds, APP_TIMER_TICKS(led_period, APP_TIMER_PRESCALER), NULL);
+    last_maj = 0;
+  }
+  
 }
 
 
 void ant_evt_glasses (ant_evt_t * p_ant_evt)
 {
     uint32_t err_code = NRF_SUCCESS;
+    ant_glasses_trans trans;
     
     switch (p_ant_evt->event)
 					{
 							case EVENT_TX:
-                  ant_glasses_tx_evt_handle(&m_ant_glasses, p_ant_evt, glasses_payload);
-                  printf("Envoi au lunettes: %s\n\r", glasses_payload);
-									break;
+                  break;
               case EVENT_RX:
+                  ant_glasses_rx_evt_handle(&m_ant_glasses, p_ant_evt, &trans);
+                  action_reception(&trans);
+                  //LEDS_INVERT(BSP_LED_0_MASK);
 									break;
 							case EVENT_RX_FAIL:
-									break;
 							case EVENT_RX_FAIL_GO_TO_SEARCH:
+                  //LEDS_INVERT(BSP_LED_2_MASK);
+                  LOG("RX fail\n\r");
 									break;
+              case EVENT_RX_SEARCH_TIMEOUT:
+                  break;
 							case EVENT_CHANNEL_CLOSED:
-							case EVENT_RX_SEARCH_TIMEOUT:
+                  LOG("Reconnexion...\n\r");
+                  is_glasses_init = 0;
+									//err_code = app_timer_stop(m_sec_glasses);
+                  LEDS_ON(LEDS_MASK);
 									break;
 					}
           
@@ -229,7 +245,6 @@ void ant_evt_dispatch(ant_evt_t * p_ant_evt)
 {
 
 	  switch(p_ant_evt->channel) {
-
       case GLASSES_RX_CHANNEL_NUMBER:
         ant_evt_glasses (p_ant_evt);
         break;
@@ -238,20 +253,36 @@ void ant_evt_dispatch(ant_evt_t * p_ant_evt)
 				break;
 		}
 
-    // BSP_LED_0_MASK  BSP_LED_1_MASK BSP_LED_2_MASK
-    LEDS_INVERT(BSP_LED_2_MASK);
 }
 
+static void glasses_connect(void * p_context)
+{
+  uint32_t err_code = NRF_SUCCESS;
+  
+  err_code = ant_glasses_open(&m_ant_glasses);
+  APP_ERROR_CHECK(err_code);
+}
 
+static void leds_blink ()
+{
+  LEDS_INVERT(led_mask);
+}
 
 
 /**@brief Function for initializing the timer module.
  */
 static void timers_init(void)
 {
+    uint32_t err_code;
+  
     // Initialize timer module, making it use the scheduler.
     APP_TIMER_APPSH_INIT(APP_TIMER_PRESCALER, APP_TIMER_MAX_TIMERS, APP_TIMER_OP_QUEUE_SIZE, true);
+  
+    err_code = app_timer_create(&m_sec_glasses, APP_TIMER_MODE_SINGLE_SHOT, glasses_connect);
+    APP_ERROR_CHECK(err_code);
 
+    err_code = app_timer_create(&m_sec_leds, APP_TIMER_MODE_REPEATED, leds_blink);
+    APP_ERROR_CHECK(err_code);
 }
 
 
@@ -275,7 +306,6 @@ static void bsp_event_handler(bsp_event_t event)
             break;
 
         case BSP_EVENT_KEY_1:
-            
             break;
 
         default:
@@ -284,6 +314,46 @@ static void bsp_event_handler(bsp_event_t event)
 }
 
 
+/**@brief Function for dispatching a system event to interested modules.
+ *
+ * @details This function is called from the system event interrupt handler after a system
+ *          event has been received.
+ *
+ * @param[in] sys_evt  System stack event.
+ */
+static void sys_evt_dispatch(uint32_t sys_evt)
+{
+    pstorage_sys_event_handler(sys_evt);
+}
+
+
+
+/**@brief Function for initializing the BLE stack.
+ *
+ * @details Initializes the SoftDevice and the BLE event interrupt.
+ */
+static void stack_init(void)
+{
+    uint32_t err_code;
+
+    // Initialize the SoftDevice handler module.
+    SOFTDEVICE_HANDLER_INIT(NRF_CLOCK_LFCLKSRC_XTAL_20_PPM, NULL);
+
+    // Register with the SoftDevice handler module for System events.
+    err_code = softdevice_sys_evt_handler_set(sys_evt_dispatch);
+    APP_ERROR_CHECK(err_code);
+
+    err_code = softdevice_ant_evt_handler_set(ant_evt_dispatch);
+    APP_ERROR_CHECK(err_code);
+
+    // TODO check this
+    err_code = ant_stack_static_config();
+    APP_ERROR_CHECK(err_code);
+
+    err_code = sd_ant_network_address_set(ANTPLUS_NETWORK_NUMBER, m_network_key);
+    APP_ERROR_CHECK(err_code);
+
+}
 
 
 
@@ -340,7 +410,6 @@ static void uart_init(void)
 static void buttons_leds_init(void)
 {
     //bsp_event_t startup_event;
-
     uint32_t err_code = bsp_init(BSP_INIT_LED,
                                  APP_TIMER_TICKS(100, APP_TIMER_PRESCALER),
                                  bsp_event_handler);
@@ -372,25 +441,22 @@ static void power_manage(void)
  */
 int main(void)
 {
-
-
+    LEDS_OFF(LEDS_MASK);
     // Initialize.
     app_trace_init();
     timers_init();
     uart_init();
     buttons_leds_init();
+    
+    stack_init();
+  
     scheduler_init();
     
-    LOG("ANT GLASSES\n");
-
+    
+    LOG("Reboot\n");
+    
     ant_profile_setup();
   
-    LEDS_OFF(LEDS_MASK);
-    
-    // BSP_LED_0_MASK  BSP_LED_1_MASK BSP_LED_2_MASK
-    LEDS_ON(BSP_LED_1_MASK);
-		
-
     // Enter main loop.
     for (;;)
     {

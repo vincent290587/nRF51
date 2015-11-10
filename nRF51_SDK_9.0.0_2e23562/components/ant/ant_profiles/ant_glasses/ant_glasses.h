@@ -47,8 +47,16 @@
     
 typedef struct
 {
-    uint8_t payload[8];
+    uint8_t led_mask[4];
+    uint8_t avance[4];
 }ant_glasses_data_layout_t;
+
+    
+typedef struct
+{
+    uint8_t led_mask;
+    float avance;
+}ant_glasses_trans;
 
     
     /**@brief GLASSES profile structure. */
@@ -63,7 +71,7 @@ uint32_t ant_glasses_init(ant_glasses_profile_t * p_profile, ant_channel_config_
 
 uint32_t ant_glasses_open(ant_glasses_profile_t * p_profile);
 
-void ant_glasses_rx_evt_handle(ant_glasses_profile_t * p_profile, ant_evt_t * p_ant_event);
+void ant_glasses_rx_evt_handle(ant_glasses_profile_t * p_profile, ant_evt_t * p_ant_event, ant_glasses_trans *trans);
 
 void ant_glasses_tx_evt_handle(ant_glasses_profile_t * p_profile, ant_evt_t * p_ant_event, uint8_t p_message_payload[8]);
 
