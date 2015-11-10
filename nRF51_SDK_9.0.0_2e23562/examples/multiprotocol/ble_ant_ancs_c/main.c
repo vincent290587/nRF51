@@ -283,7 +283,41 @@ uint8_t encode (uint8_t byte) {
 
 void transmit_order () {
    // pass-through
-   memcpy(glasses_payload, read_byte, 8*sizeof(uint8_t));
+   uint8_t i;
+  
+   LOG("Envoi aux lunettes: \"%c%c%c%c%c%c%c%c\"\n\r", 
+                   read_byte[0], read_byte[1],
+                   read_byte[2], read_byte[3],
+                   read_byte[4], read_byte[5],
+                   read_byte[6], read_byte[7]);
+  
+
+   memset(glasses_payload, 0, 8);
+  
+   for (i=0; i<4; i++) {
+     if (read_byte[2*i] <= '9') {
+       glasses_payload[i] = read_byte[2*i] - '0';
+     } else if (read_byte[2*i] <= 'F') {
+       // lettres majuscules
+       glasses_payload[i] = 10 + read_byte[2*i] - 'A';
+     } else {
+       // lettres minuscules
+       glasses_payload[i] = 10 + read_byte[2*i] - 'a';
+     }
+     
+     glasses_payload[i] *= 16;
+     
+     if (read_byte[2*i+1] <= '9') {
+       glasses_payload[i] += read_byte[2*i+1] - '0';
+     } else if (read_byte[2*i+1] <= 'F') {
+       // lettres majuscules
+       glasses_payload[i] += 10 + read_byte[2*i+1] - 'A';
+     } else {
+       // lettres minuscules
+       glasses_payload[i] += 10 + read_byte[2*i+1] - 'a';
+     }
+     
+   }
 }
 
 
@@ -338,7 +372,11 @@ void ant_evt_glasses (ant_evt_t * p_ant_evt)
 					{
 							case EVENT_TX:
                   ant_glasses_tx_evt_handle(&m_ant_glasses, p_ant_evt, glasses_payload);
-                  printf("Envoi au lunettes: %s\n\r", glasses_payload);
+                  LOG("Payload: \"%x %x %x %x %x %x %x %x\"\n\r", 
+                   glasses_payload[0], glasses_payload[1],
+                   glasses_payload[2], glasses_payload[3],
+                   glasses_payload[4], glasses_payload[5],
+                   glasses_payload[6], glasses_payload[7]);
 									break;
               case EVENT_RX:
 									break;
