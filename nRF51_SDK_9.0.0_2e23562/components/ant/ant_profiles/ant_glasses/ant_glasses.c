@@ -69,8 +69,11 @@ static void decode_glasses_rx_message(ant_glasses_profile_t * p_profile, uint8_t
   memcpy(&tmp, msg->avance, sizeof(float));
   
   if (trans) {
-    trans->led_mask = msg->led_mask[0];
-    trans->avance = tmp;
+    trans->led_mask = msg->led_mask;
+    trans->avance = (float)msg->avance[0] * 10.;
+    trans->avance += (float)msg->avance[1];
+    trans->avance += (float)msg->avance[2] / 10.;
+    trans->avance += (float)msg->avance[3] / 100.;
   }
   
   LOG_ANT("Message: mask/%d avance/%.2f\n\r", msg->led_mask[0], tmp);

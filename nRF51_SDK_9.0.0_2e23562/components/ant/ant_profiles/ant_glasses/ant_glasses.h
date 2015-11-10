@@ -47,8 +47,8 @@
     
 typedef struct
 {
-    uint8_t led_mask[4];
-    uint8_t avance[4];
+    uint8_t led_mask;
+    uint8_t avance[7];
 }ant_glasses_data_layout_t;
 
     

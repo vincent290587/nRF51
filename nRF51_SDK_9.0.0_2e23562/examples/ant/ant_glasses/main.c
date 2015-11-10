@@ -108,9 +108,10 @@ const uint8_t leds_list[LEDS_NUMBER] = LEDS_LIST;
 const uint8_t leds_list;
 #endif
 
-static uint32_t last_maj = 0;
-static float led_period;
+
+static uint32_t led_period;
 static uint8_t led_mask;
+static uint8_t is_led_off = 0;
 
 
 /**@brief Callback function for handling asserts in the SoftDevice.
@@ -174,29 +175,19 @@ float regFenLim(float val_, float b1_i, float b1_f, float b2_i, float b2_f) {
 void action_reception(ant_glasses_trans *trans)
 {
   uint32_t err_code = NRF_SUCCESS;
-  uint8_t is_led_off = 0;
+  
   
   LOG("Action %d %f\n\r", trans->led_mask, trans->avance);
-  
-  led_period = trans->avance;
+
   led_mask = 1<<leds_list[trans->led_mask];
   
-  if (led_period < 0.4) {
-    led_period = regFenLim(led_period, 0., 0.35, 100., 2500.);
+  if (trans->avance < 35.) {
+    is_led_off = 0;
+    led_period = regFenLim(trans->avance, 0., 35., 100., 2500.);
   } else {
     is_led_off = 1;
   }
   
-  last_maj += 1;
-  
-  if (last_maj == 15) {
-    err_code = app_timer_stop(m_sec_leds);
-    LEDS_ON(LEDS_MASK);
-  } else if (last_maj > 15 && is_led_off == 0) {
-    LOG("LED timer start\n\r");
-    err_code = app_timer_start(m_sec_leds, APP_TIMER_TICKS(led_period, APP_TIMER_PRESCALER), NULL);
-    last_maj = 0;
-  }
   
 }
 
@@ -205,6 +196,8 @@ void ant_evt_glasses (ant_evt_t * p_ant_evt)
 {
     uint32_t err_code = NRF_SUCCESS;
     ant_glasses_trans trans;
+  
+    memset(&trans, 0, sizeof(ant_glasses_trans));
     
     switch (p_ant_evt->event)
 					{
@@ -265,7 +258,23 @@ static void glasses_connect(void * p_context)
 
 static void leds_blink ()
 {
-  LEDS_INVERT(led_mask);
+  uint32_t err_code = NRF_SUCCESS;
+  uint32_t delay;
+  
+  delay = regFenLim(led_period, 0., 2500., 50., 250.);
+  
+  LEDS_ON(LEDS_MASK);
+  if (is_led_off == 0) {
+    LEDS_OFF(led_mask);
+    nrf_delay_ms(delay);
+    LEDS_ON(led_mask);
+  }
+  
+  LOG("LED period= %d\n\r", led_period);
+  
+  err_code = app_timer_start(m_sec_leds, APP_TIMER_TICKS(led_period, APP_TIMER_PRESCALER), NULL);
+  
+  return;
 }
 
 
@@ -281,7 +290,7 @@ static void timers_init(void)
     err_code = app_timer_create(&m_sec_glasses, APP_TIMER_MODE_SINGLE_SHOT, glasses_connect);
     APP_ERROR_CHECK(err_code);
 
-    err_code = app_timer_create(&m_sec_leds, APP_TIMER_MODE_REPEATED, leds_blink);
+    err_code = app_timer_create(&m_sec_leds, APP_TIMER_MODE_SINGLE_SHOT, leds_blink);
     APP_ERROR_CHECK(err_code);
 }
 
@@ -441,6 +450,8 @@ static void power_manage(void)
  */
 int main(void)
 {
+  uint32_t err_code;
+  
     LEDS_OFF(LEDS_MASK);
     // Initialize.
     app_trace_init();
@@ -454,9 +465,14 @@ int main(void)
     
     
     LOG("Reboot\n");
+  
+    is_led_off = 1;
+    led_period = 2000;
+    err_code = app_timer_start(m_sec_leds, APP_TIMER_TICKS(led_period, APP_TIMER_PRESCALER), NULL);
     
     ant_profile_setup();
   
+    LEDS_ON(LEDS_MASK);
     // Enter main loop.
     for (;;)
     {
