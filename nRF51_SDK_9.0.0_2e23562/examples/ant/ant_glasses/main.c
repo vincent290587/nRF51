@@ -181,9 +181,9 @@ void action_reception(ant_glasses_trans *trans)
 
   led_mask = 1<<leds_list[trans->led_mask];
   
-  if (trans->avance < 35.) {
+  if (trans->avance < 20.) {
     is_led_off = 0;
-    led_period = regFenLim(trans->avance, 0., 35., 100., 2500.);
+    led_period = regFenLim(trans->avance, 2., 20., 100., 2000.);
   } else {
     is_led_off = 1;
   }
@@ -222,7 +222,7 @@ void ant_evt_glasses (ant_evt_t * p_ant_evt)
                   LEDS_ON(LEDS_MASK);
 									break;
 					}
-          
+    
     APP_ERROR_CHECK(err_code);
 }
 
@@ -261,6 +261,7 @@ static void leds_blink ()
   uint32_t err_code = NRF_SUCCESS;
   uint32_t delay;
   
+  // temps led eteinte
   delay = regFenLim(led_period, 0., 2500., 50., 250.);
   
   LEDS_ON(LEDS_MASK);
