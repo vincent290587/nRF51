@@ -25,87 +25,9 @@
  * Notification Center Service Client.
  */
 
-#include <stdbool.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdio.h>
-#include <SEGGER_RTT.h>
+#include "myIncludes.h"
+#include "antplus_mgr.h"
 
-#include "ble_ancs_c.h"
-#include "ble_db_discovery.h"
-#include "nordic_common.h"
-#include "nrf.h"
-#include "app_error.h"
-#include "ble_hci.h"
-#include "ble_gap.h"
-#include "ble_nus.h"
-#include "ble_advdata.h"
-#include "ble_advertising.h"
-#include "nrf_gpio.h"
-#include "ble_srv_common.h"
-#include "ble_conn_params.h"
-#include "device_manager.h"
-#include "app_button.h"
-#include "app_timer.h"
-#include "app_uart.h"
-#include "pstorage.h"
-#include "nrf_soc.h"
-#include "bsp.h"
-#include "bsp_btn_ble.h"
-#include "softdevice_handler.h"
-#include "app_trace.h"
-#include "nrf_delay.h"
-#include "app_scheduler.h"
-#include "app_timer_appsh.h"
-
-
-
-#define UART_TX_BUF_SIZE                256                                        /**< UART TX buffer size. */
-#define UART_RX_BUF_SIZE                256                                           /**< UART RX buffer size. */
-
-#define ATTR_DATA_SIZE                  BLE_ANCS_ATTR_DATA_MAX                      /**< Allocated size for attribute data. */
-
-#define DISPLAY_MESSAGE_BUTTON_ID       1                                           /**< Button used to request notification attributes. */
-
-#define NUS_SERVICE_UUID_TYPE           BLE_UUID_TYPE_VENDOR_BEGIN                  /**< UUID type for the Nordic UART Service (vendor specific). */
-
-#define DEVICE_NAME                     "ANCS"                                      /**< Name of the device. Will be included in the advertising data. */
-#define APP_ADV_FAST_INTERVAL           40                                          /**< The advertising interval (in units of 0.625 ms). The default value corresponds to 25 ms. */
-#define APP_ADV_SLOW_INTERVAL           3200                                        /**< Slow advertising interval (in units of 0.625 ms). The default value corresponds to 2 seconds. */
-#define APP_ADV_FAST_TIMEOUT            180                                         /**< The advertising time-out in units of seconds. */
-#define APP_ADV_SLOW_TIMEOUT            180                                         /**< The advertising time-out in units of seconds. */
-#define ADV_INTERVAL_FAST_PERIOD        30                                          /**< The duration of the fast advertising period (in seconds). */
-
-#define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
-#define APP_TIMER_OP_QUEUE_SIZE         10                                           /**< Size of timer operation queues. */
-
-#define MIN_CONN_INTERVAL               MSEC_TO_UNITS(500, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.5 seconds). */
-#define MAX_CONN_INTERVAL               MSEC_TO_UNITS(1000, UNIT_1_25_MS)           /**< Maximum acceptable connection interval (1 second). */
-#define SLAVE_LATENCY                   0                                           /**< Slave latency. */
-#define CONN_SUP_TIMEOUT                MSEC_TO_UNITS(4000, UNIT_10_MS)             /**< Connection supervisory time-out (4 seconds). */
-
-#define FIRST_CONN_PARAMS_UPDATE_DELAY  APP_TIMER_TICKS(5000, APP_TIMER_PRESCALER)  /**< Time from initiating an event (connect or start of notification) to the first time sd_ble_gap_conn_param_update is called (5 seconds). */
-#define NEXT_CONN_PARAMS_UPDATE_DELAY   APP_TIMER_TICKS(30000, APP_TIMER_PRESCALER) /**< Time between each call to sd_ble_gap_conn_param_update after the first (30 seconds). */
-#define MAX_CONN_PARAMS_UPDATE_COUNT    3                                           /**< Number of attempts before giving up the connection parameter negotiation. */
-
-#define MESSAGE_BUFFER_SIZE             18                                          /**< Size of buffer holding optional messages in notifications. */
-
-#define SECURITY_REQUEST_DELAY          APP_TIMER_TICKS(1500, APP_TIMER_PRESCALER)  /**< Delay after connection until security request is sent, if necessary (ticks). */
-#define PING_DELAY                      APP_TIMER_TICKS(10000, APP_TIMER_PRESCALER)
-#define ANT_DELAY                       APP_TIMER_TICKS(2000, APP_TIMER_PRESCALER)
-
-#define SEC_PARAM_BOND                  1                                           /**< Perform bonding. */
-#define SEC_PARAM_MITM                  0                                           /**< Man In The Middle protection not required. */
-#define SEC_PARAM_IO_CAPABILITIES       BLE_GAP_IO_CAPS_NONE                        /**< No I/O capabilities. */
-#define SEC_PARAM_OOB                   0                                           /**< Out Of Band data not available. */
-#define SEC_PARAM_MIN_KEY_SIZE          7                                           /**< Minimum encryption key size. */
-#define SEC_PARAM_MAX_KEY_SIZE          16                                          /**< Maximum encryption key size. */
-
-#define DEAD_BEEF                       0xDEADBEEF                                  /**< Value used as error code on stack dump. Can be used to identify stack location on stack unwind. */
-
-#define SCHED_MAX_EVENT_DATA_SIZE       MAX(APP_TIMER_SCHED_EVT_SIZE, \
-                                            BLE_STACK_HANDLER_SCHED_EVT_SIZE) /**< Maximum size of scheduler events. */
-#define SCHED_QUEUE_SIZE                10                                    /**< Maximum number of events in the scheduler queue. */
 
 static const char * lit_catid[BLE_ANCS_NB_OF_CATEGORY_ID] =
 {
@@ -246,7 +168,7 @@ static void apple_notification_setup(void)
     err_code = ble_ancs_c_data_source_notif_enable(&m_ancs_c);
     APP_ERROR_CHECK(err_code);
 
-    SEGGER_RTT_WriteString(0, "Notifications Enabled.\n");
+    //SEGGER_RTT_WriteString(0, "Notifications Enabled.\n");
 }
 
 
@@ -256,7 +178,7 @@ static void apple_notification_setup(void)
  */
 static void notif_print(ble_ancs_c_evt_notif_t * p_notif)
 {
-    SEGGER_RTT_WriteString(0, "Notification");
+    //SEGGER_RTT_WriteString(0, "Notification");
     printf("\nNotification\n");
     printf("Event:       %s\n", lit_eventid[p_notif->evt_id]);
     printf("Category ID: %s\n", lit_catid[p_notif->category_id]);
@@ -264,13 +186,13 @@ static void notif_print(ble_ancs_c_evt_notif_t * p_notif)
     printf("UID:         %u\n", (unsigned int) p_notif->notif_uid);
   
     if (p_notif->evt_id==0) {
-      SEGGER_RTT_WriteString(0, ": ");
-      SEGGER_RTT_WriteString(0, lit_eventid[p_notif->evt_id]);
-      SEGGER_RTT_WriteString(0, " / ");
-      SEGGER_RTT_WriteString(0, lit_catid[p_notif->category_id]);
+      //SEGGER_RTT_WriteString(0, ": ");
+      //SEGGER_RTT_WriteString(0, lit_eventid[p_notif->evt_id]);
+      //SEGGER_RTT_WriteString(0, " / ");
+      //SEGGER_RTT_WriteString(0, lit_catid[p_notif->category_id]);
     }
     
-    SEGGER_RTT_WriteString(0, "   \n");
+    //SEGGER_RTT_WriteString(0, "   \n");
     
 
     printf("Flags:\n");
@@ -306,34 +228,35 @@ static void notif_print(ble_ancs_c_evt_notif_t * p_notif)
 static void notif_attr_print(ble_ancs_c_evt_notif_attr_t * p_attr,
                              ble_ancs_c_attr_list_t      * ancs_attr_list)
 {
-    SEGGER_RTT_WriteString(0, "Attributs: ");
+    //SEGGER_RTT_WriteString(0, "Attributs: ");
     if (p_attr->attr_len != 0)
     {
         printf("%s: %s\n",
                lit_attrid[p_attr->attr_id],
                ancs_attr_list[p_attr->attr_id].p_attr_data);
-        SEGGER_RTT_WriteString(0, lit_attrid[p_attr->attr_id]);
-        SEGGER_RTT_WriteString(0, " / ");
-        SEGGER_RTT_WriteString(0, ancs_attr_list[p_attr->attr_id].p_attr_data);
+        //SEGGER_RTT_WriteString(0, lit_attrid[p_attr->attr_id]);
+        //SEGGER_RTT_WriteString(0, " / ");
+        //SEGGER_RTT_WriteString(0, ancs_attr_list[p_attr->attr_id].p_attr_data);
     }
     else if (p_attr->attr_len == 0)
     {
         printf("%s: (N/A)\n", lit_attrid[p_attr->attr_id]);
-        SEGGER_RTT_WriteString(0, lit_attrid[p_attr->attr_id]);
+        //SEGGER_RTT_WriteString(0, lit_attrid[p_attr->attr_id]);
     }
-    SEGGER_RTT_WriteString(0, "   \n");
+    //SEGGER_RTT_WriteString(0, "   \n");
 }
 
 
 
 // on fait un ping sur iOS pour eviter la deconnexion
 static void sec_ping(void * p_context) {
-    uint32_t err_code;
-
-     err_code = ble_nus_string_send(&m_nus, "PING", 4);
-     //APP_ERROR_CHECK(err_code);
+     ble_nus_string_send(&m_nus, "PING", 4);
 }
 
+// on fait un ping sur iOS pour eviter la deconnexion
+void nus_send(char * text) {
+     ble_nus_string_send(&m_nus, text, strlen(text));
+}
 
 /**@brief Function for initializing the timer module.
  */
@@ -371,7 +294,7 @@ static void on_ancs_c_evt(ble_ancs_c_evt_t * p_evt)
     switch (p_evt->evt_type)
     {
         case BLE_ANCS_C_EVT_DISCOVER_COMPLETE:
-            SEGGER_RTT_WriteString(0, "Apple Notification Service discovered on the server.\n");
+            //SEGGER_RTT_WriteString(0, "Apple Notification Service discovered on the server.\n");
             apple_notification_setup();
             break;
 
@@ -392,7 +315,7 @@ static void on_ancs_c_evt(ble_ancs_c_evt_t * p_evt)
                                                  BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
                 APP_ERROR_CHECK(err_code);
             }
-            SEGGER_RTT_WriteString(0, "Apple Notification Service not discovered on the server.\n");
+            //SEGGER_RTT_WriteString(0, "Apple Notification Service not discovered on the server.\n");
             break;
 
         default:
@@ -636,7 +559,7 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
     switch (p_ble_evt->header.evt_id)
     {
         case BLE_GAP_EVT_CONNECTED:
-            SEGGER_RTT_WriteString(0, "Connected.\n");
+            //SEGGER_RTT_WriteString(0, "Connected.\n");
             err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
             APP_ERROR_CHECK(err_code);
         
@@ -647,7 +570,7 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
             break;
 
         case BLE_GAP_EVT_DISCONNECTED:
-            SEGGER_RTT_WriteString(0, "Disconnected.\n");
+            //SEGGER_RTT_WriteString(0, "Disconnected.\n");
             m_conn_handle = BLE_CONN_HANDLE_INVALID;
         
             err_code = app_timer_stop(m_sec_ping);
@@ -656,7 +579,7 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
 
         case BLE_GATTC_EVT_TIMEOUT:
         case BLE_GATTS_EVT_TIMEOUT:
-            SEGGER_RTT_WriteString(0, "Timeout.\n");
+            //SEGGER_RTT_WriteString(0, "Timeout.\n");
             // Disconnect on GATT Server and Client time-out events.
             err_code = sd_ble_gap_disconnect(m_conn_handle,
                                              BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
@@ -746,6 +669,7 @@ static void sys_evt_dispatch(uint32_t sys_evt)
 }
 
 
+
 /**@brief Function for initializing the BLE stack.
  *
  * @details Initializes the SoftDevice and the BLE event interrupt.
@@ -775,6 +699,8 @@ static void ble_stack_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
+
+
 #define TAILLE_BUFFER 30
 
 /**@brief Function for handling the data from the Nordic UART Service.
@@ -796,14 +722,14 @@ static void nus_data_handler(ble_nus_t * p_nus, uint8_t * p_data, uint16_t lengt
   
     if (length < 2) return;
 
-    //SEGGER_RTT_WriteString(0, p_data);
+    ////SEGGER_RTT_WriteString(0, p_data);
     for (i = 0; i < length && i < TAILLE_BUFFER - 5; i++) {
         buffer[i] = p_data[i];
         buffer[i+1] = '\n';
         buffer[i+2] = '\0';
     }
     
-    SEGGER_RTT_WriteString(0, buffer);
+    //SEGGER_RTT_WriteString(0, buffer);
 }
 /**@snippet [Handling the data received over BLE] */
 
@@ -876,7 +802,6 @@ static void services_init(void)
     APP_ERROR_CHECK(err_code);
 
 }
-
 
 
 
@@ -995,6 +920,7 @@ int main(void)
     uart_init();
     buttons_leds_init(&erase_bonds);
     ble_stack_init();
+    
     APP_SCHED_INIT(SCHED_MAX_EVENT_DATA_SIZE, SCHED_QUEUE_SIZE);
     device_manager_init(erase_bonds);
     db_discovery_init();
@@ -1003,12 +929,14 @@ int main(void)
     services_init();
     advertising_init();
     conn_params_init();
+  
+    ant_init();
 
     // Start execution.
     err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
     APP_ERROR_CHECK(err_code);
 
-    SEGGER_RTT_WriteString(0, "BLE ANCS\r\n");
+    //SEGGER_RTT_WriteString(0, "BLE ANCS\r\n");
     
     // Enter main loop.
     for (;;)
