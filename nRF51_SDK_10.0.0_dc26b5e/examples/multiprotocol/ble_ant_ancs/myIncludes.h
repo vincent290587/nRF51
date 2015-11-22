@@ -49,6 +49,8 @@
 #include "ant_bsc.h"
 //#include "ant_bsc_local.h"
 
+#include "ant_glasses.h"
+
 #define UART_TX_BUF_SIZE                256                                        /**< UART TX buffer size. */
 #define UART_RX_BUF_SIZE                1                                           /**< UART RX buffer size. */
 

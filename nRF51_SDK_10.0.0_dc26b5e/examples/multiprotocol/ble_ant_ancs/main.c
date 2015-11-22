@@ -114,14 +114,29 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
 
 void uart_error_handle(app_uart_evt_t * p_event)
 {
-    if (p_event->evt_type == APP_UART_COMMUNICATION_ERROR)
+    uint8_t read_byte = 0;
+  
+    if (p_event->evt_type == APP_UART_DATA_READY)
     {
+      // get data
+      while(app_uart_get(&read_byte) != NRF_SUCCESS) {;}
+      if (encode(read_byte)) {
+        transmit_order ();
+      }
+      
+    }
+  
+    if (0) {
+      if (p_event->evt_type == APP_UART_COMMUNICATION_ERROR)
+      {
         APP_ERROR_HANDLER(p_event->data.error_communication);
-    }
-    else if (p_event->evt_type == APP_UART_FIFO_ERROR)
-    {
+      }
+      else if (p_event->evt_type == APP_UART_FIFO_ERROR)
+      {
         APP_ERROR_HANDLER(p_event->data.error_code);
+      }
     }
+
 }
 
 

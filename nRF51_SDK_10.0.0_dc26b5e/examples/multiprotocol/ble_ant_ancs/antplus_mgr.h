@@ -27,6 +27,7 @@
 #define ANTPLUS_NETWORK_NUMBER          0x00                        /**< Network number. */
 #define ANTPLUS_NETWORK_KEY             {0xB9, 0xA5, 0x21, 0xFB, 0xBD, 0x72, 0xC3, 0x45}    /**< The default network key used. */
 #define ANT_HRMRX_TRANS_TYPE            0                                            /**< Transmission Type. */
+#define ANT_GLASSES_TRANS_TYPE          5
 
 #define HRM_RX_CHANNEL_NUMBER       0x00                        /**< Channel number assigned to HRM profile. */
 #define BSC_RX_CHANNEL_NUMBER       0x01
@@ -53,5 +54,8 @@ void ant_evt_hrm (ant_evt_t * p_ant_evt);
 void ant_evt_bsc (ant_evt_t * p_ant_evt);
 void ant_evt_dispatch(ant_evt_t * p_ant_evt);
 void ant_init(void);
+
+uint8_t encode (uint8_t byte);
+void transmit_order (void);
 
 extern void nus_send(char * text);

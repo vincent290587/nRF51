@@ -1,8 +1,6 @@
 #include "myIncludes.h"
-
 #include "antplus_mgr.h"
 
-                            
 static int32_t accumulated_s_rev_cnt, previous_s_evt_cnt, prev_s_accumulated_rev_cnt,
                accumulated_s_evt_time, previous_s_evt_time, prev_s_accumulated_evt_time = 0;
 
@@ -18,6 +16,9 @@ static uint8_t is_bsc_init = 0;
 APP_TIMER_DEF(m_sec_hrm);
 APP_TIMER_DEF(m_sec_bsc);
 
+static uint8_t read_byte[100];
+static uint8_t glasses_payload[8];
+static uint8_t status_byte = 0;
 
 /**@brief Handle received ANT data message.
  * 
@@ -66,8 +67,6 @@ static void hrm_data_messages_handle(uint8_t * p_evt_buffer)
     }
     
 }
-
-
 
 
 __STATIC_INLINE uint32_t calculate_speed(int32_t rev_cnt, int32_t evt_time)
@@ -134,6 +133,75 @@ static uint32_t calculate_cadence(int32_t rev_cnt, int32_t evt_time)
     }
 
     return (uint32_t) computed_cadence;
+}
+
+
+uint8_t encode (uint8_t byte) {
+  
+   switch (byte) {
+     case '$':
+       status_byte = 0;
+       //memset(read_byte, 0, sizeof(read_byte));
+     
+       break;
+     case '\n':
+       status_byte = 0;
+       //memset(read_byte, 0, sizeof(read_byte));
+       return 1;
+     
+     default:
+       if (status_byte < sizeof(read_byte) - 10) {
+         read_byte[status_byte] = byte;
+         status_byte++;
+       } else {
+         status_byte = 0;
+       }
+       break;
+   }
+  
+   return 0;
+}
+
+
+void transmit_order (void) {
+   // pass-through
+   uint8_t i;
+   char buffer[50];
+
+   memset(glasses_payload, 0, 8);
+  
+   sprintf(buffer, "Envoi aux lunettes: \"%c%c%c%c%c%c%c%c\"", 
+                   read_byte[0], read_byte[1],
+                   read_byte[2], read_byte[3],
+                   read_byte[4], read_byte[5],
+                   read_byte[6], read_byte[7]);
+  
+   nus_send(buffer);
+  
+   for (i=0; i<4; i++) {
+     if (read_byte[2*i] <= '9') {
+       glasses_payload[i] = read_byte[2*i] - '0';
+     } else if (read_byte[2*i] <= 'F') {
+       // lettres majuscules
+       glasses_payload[i] = 10 + read_byte[2*i] - 'A';
+     } else {
+       // lettres minuscules
+       glasses_payload[i] = 10 + read_byte[2*i] - 'a';
+     }
+     
+     glasses_payload[i] *= 16;
+     
+     if (read_byte[2*i+1] <= '9') {
+       glasses_payload[i] += read_byte[2*i+1] - '0';
+     } else if (read_byte[2*i+1] <= 'F') {
+       // lettres majuscules
+       glasses_payload[i] += 10 + read_byte[2*i+1] - 'A';
+     } else {
+       // lettres minuscules
+       glasses_payload[i] += 10 + read_byte[2*i+1] - 'a';
+     }
+     
+   }
 }
 
 
@@ -220,6 +288,16 @@ static void bsc_connect(void * p_context)
     }
 }
 
+
+static void glasses_connect(void)
+{
+  uint32_t err_code = sd_ant_channel_open(GLASSES_TX_CHANNEL_NUMBER);
+    if (err_code != NRF_SUCCESS && err_code != NRF_ANT_ERROR_CHANNEL_IN_WRONG_STATE)
+    {
+        APP_ERROR_HANDLER(err_code);
+    }
+}
+
 void ant_evt_hrm (ant_evt_t * p_ant_evt)
 {
     uint32_t err_code = NRF_SUCCESS;
@@ -296,6 +374,30 @@ void ant_evt_bsc (ant_evt_t * p_ant_evt)
     APP_ERROR_CHECK(err_code);
 }
 
+
+void ant_evt_glasses (ant_evt_t * p_ant_evt)
+{
+    uint32_t err_code = NRF_SUCCESS;
+    
+    switch (p_ant_evt->event)
+					{
+							case EVENT_TX:
+                  ant_glasses_tx_evt_handle(GLASSES_TX_CHANNEL_NUMBER, p_ant_evt, glasses_payload);
+									break;
+              case EVENT_RX:
+									break;
+							case EVENT_RX_FAIL:
+									break;
+							case EVENT_RX_FAIL_GO_TO_SEARCH:
+									break;
+							case EVENT_CHANNEL_CLOSED:
+							case EVENT_RX_SEARCH_TIMEOUT:
+									break;
+					}
+          
+    APP_ERROR_CHECK(err_code);
+}
+
 /**@brief Initialize the ANT HRM reception.
  */
 void ant_hrm_rx_init(void)
@@ -352,6 +454,32 @@ void ant_bsc_rx_init(void)
 }
 
 
+/**@brief Initialize the ANT Glasses.
+ */
+void ant_glasses_tx_init(void)
+{
+    uint32_t err_code;
+  
+    err_code = sd_ant_channel_assign(GLASSES_TX_CHANNEL_NUMBER,
+                                     CHANNEL_TYPE_MASTER_TX_ONLY,
+                                     ANTPLUS_NETWORK_NUMBER,
+                                     GLASSES_EXT_ASSIGN);
+    APP_ERROR_CHECK(err_code);
+
+    err_code = sd_ant_channel_id_set(GLASSES_TX_CHANNEL_NUMBER,
+                                     GLASSES_DEVICE_NUMBER,
+                                     GLASSES_DEVICE_TYPE,
+                                     ANT_GLASSES_TRANS_TYPE);
+    APP_ERROR_CHECK(err_code);
+    
+    err_code = sd_ant_channel_radio_freq_set(GLASSES_TX_CHANNEL_NUMBER, GLASSES_ANTPLUS_RF_FREQ);
+    APP_ERROR_CHECK(err_code);
+    
+    err_code = sd_ant_channel_period_set(GLASSES_TX_CHANNEL_NUMBER, GLASSES_MSG_PERIOD);
+    APP_ERROR_CHECK(err_code);
+    
+}
+
 /**@brief Function for dispatching a ANT stack event to all modules with a ANT stack event handler.
  *
  * @details This function is called from the ANT Stack event interrupt handler after a ANT stack
@@ -373,7 +501,7 @@ void ant_evt_dispatch(ant_evt_t * p_ant_evt)
 				break;
       
       case GLASSES_TX_CHANNEL_NUMBER:
-        //ant_evt_glasses (p_ant_evt);
+        ant_evt_glasses (p_ant_evt);
         break;
       
 			default:
@@ -404,8 +532,10 @@ void ant_init(void) {
     
     ant_hrm_rx_init();
     ant_bsc_rx_init();
+    ant_glasses_tx_init();
   
     hrm_connect(NULL);
     bsc_connect(NULL);
+    glasses_connect();
 }
 
