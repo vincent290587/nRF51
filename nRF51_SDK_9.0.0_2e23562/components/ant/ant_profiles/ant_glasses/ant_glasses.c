@@ -61,7 +61,6 @@ void ant_glasses_tx_evt_handle(ant_glasses_profile_t * p_profile, ant_evt_t * p_
 
 static void decode_glasses_rx_message(ant_glasses_profile_t * p_profile, uint8_t * p_message_payload, ant_glasses_trans *trans)
 {
-  uint8_t i;
   float tmp;
   
   const ant_glasses_data_layout_t *msg  = (ant_glasses_data_layout_t *)p_message_payload;

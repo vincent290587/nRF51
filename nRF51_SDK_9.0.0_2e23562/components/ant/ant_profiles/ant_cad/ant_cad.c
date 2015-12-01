@@ -35,7 +35,7 @@
 #define CADENCE_EVENT_INTERVAL       ((60u * RTC_COUNTER_FREQ) / CADENCE_RPM)                                          /**< Used cadence event interval in units of 1/1024 seconds. */
 #define CADENCE_EVENT_INTERVAL_TICKS APP_TIMER_TICKS(ROUNDED_DIV((60u * RTC_COUNTER_FREQ), CADENCE_RPM), RTC_PRESCALER)/**< Speed event interval in timer tick units. */
 
-static uint8_t  m_tx_buffer[TX_BUFFER_SIZE];                                                                           /**< Power main data page transmit buffer. */
+//static uint8_t  m_tx_buffer[TX_BUFFER_SIZE];                                                                           /**< Power main data page transmit buffer. */
 static uint32_t m_cadence_event_time       = 0;                                                                        /**< Cadence event time tracker. */
 static uint32_t m_cadence_revolution_count = 1u;                                                                       /**< Cadence revolution count tracker. */
 static uint32_t m_speed_event_time         = 0;                                                                        /**< Speed event time tracker. */

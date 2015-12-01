@@ -59,7 +59,7 @@
 #include "nrf_delay.h"
 #include "app_scheduler.h"
 #include "app_timer_appsh.h"
-
+#include "app_pwm.h"
 
 #include "ant_stack_config.h"
 #include "ant_hrm.h"
@@ -67,6 +67,8 @@
 #include "ant_glasses.h"
 #include "ant_interface.h"
 #include "ant_state_indicator.h"
+
+#include "tunes.h"
 
 #define TAILLE_BUFFER 30
 
@@ -136,6 +138,8 @@
                                             BLE_STACK_HANDLER_SCHED_EVT_SIZE) /**< Maximum size of scheduler events. */
 #define SCHED_QUEUE_SIZE                10                                    /**< Maximum number of events in the scheduler queue. */
 
+APP_PWM_INSTANCE(PWM1, 1);                   // Create the instance "PWM1" using TIMER1.
+
 
 #ifdef TRACE_DEBUG
 #define LOG printf
@@ -179,6 +183,8 @@ static const char * lit_attrid[BLE_ANCS_NB_OF_ATTRS] =
     "Negative Action Label"
 };
 
+static volatile bool ready_flag;            // A flag indicating PWM status.
+
 static ble_ancs_c_t              m_ancs_c;                                 /**< Structure used to identify the Apple Notification Service Client. */
 static ble_nus_t                 m_nus;                                      /**< Structure to identify the Nordic UART Service. */
 
@@ -195,7 +201,7 @@ static app_timer_id_t            m_sec_req_timer_id;                       /**< 
 static app_timer_id_t            m_sec_ping;
 static app_timer_id_t            m_sec_hrm;
 static app_timer_id_t            m_sec_cad;
-
+static app_timer_id_t            m_sec_tune;
 
 static ble_ancs_c_evt_notif_t m_notification_latest;                       /**< Local copy to keep track of the newest arriving notifications. */
 
@@ -229,6 +235,9 @@ const ant_channel_config_t  ant_tx_channel_config  = GLASSES_TX_CHANNEL_CONFIG(G
 static uint8_t is_hrm_init = 0;
 static uint8_t is_cad_init = 0;
 
+static uint8_t isTunePlaying = 0;
+static uint32_t iTune = 0;
+
 #if (LEDS_NUMBER > 0)
 const uint8_t leds_list[LEDS_NUMBER] = LEDS_LIST;
 #else
@@ -241,6 +250,10 @@ static char notif_title  [BLE_ANCS_ATTR_DATA_MAX];
 static uint8_t read_byte[100];
 static uint8_t glasses_payload[8];
 static uint16_t status_byte;
+
+static uint8_t pwm_ready = 0;
+
+static void play_tune ();
 
 /**@brief Callback function for handling asserts in the SoftDevice.
  *
@@ -258,6 +271,11 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
     app_error_handler(DEAD_BEEF, line_num, p_file_name);
 }
 
+
+static void pwm_ready_callback(uint32_t pwm_id)    // PWM callback function
+{
+    pwm_ready = 1;
+}
 
 
 // on fait un ping sur iOS pour eviter la deconnexion
@@ -284,6 +302,11 @@ static void sec_ping(void * p_context) {
      uint8_t ping[7] = {0};
      memcpy(ping, "PING", 4);
      ble_nus_string_send(&m_nus, ping, 4);
+}
+
+// on fait un ping sur iOS pour eviter la deconnexion
+static void sec_tune(void * p_context) {
+   play_tune();
 }
 
 
@@ -703,6 +726,9 @@ static void timers_init(void)
     err_code = app_timer_create(&m_sec_cad, APP_TIMER_MODE_SINGLE_SHOT, cad_connect);
     APP_ERROR_CHECK(err_code);
   
+    err_code = app_timer_create(&m_sec_tune, APP_TIMER_MODE_SINGLE_SHOT, sec_tune);
+    APP_ERROR_CHECK(err_code);
+  
 }
 
 
@@ -1082,6 +1108,83 @@ static void bsp_event_handler(bsp_event_t event)
 }
 
 
+static void pwm_start(uint32_t period_us) {
+  
+    /* 2-channel PWM, 200Hz, output on DK LED pins. */
+    //app_pwm_config_t pwm1_cfg = APP_PWM_DEFAULT_CONFIG_2CH(period_us, 22, 24);
+    
+    /* Switch the polarity of the second channel. */
+    //pwm1_cfg.pin_polarity[1] = APP_PWM_POLARITY_ACTIVE_HIGH;
+  
+    app_pwm_config_t pwm1_cfg = APP_PWM_DEFAULT_CONFIG_1CH(period_us, 22);
+    nrf_gpio_cfg_output(24);
+    nrf_gpio_pin_clear(24);
+    
+    /* Initialize and enable PWM. */
+    uint32_t err_code = app_pwm_init(&PWM1,&pwm1_cfg, pwm_ready_callback);
+    APP_ERROR_CHECK(err_code);
+    app_pwm_enable(&PWM1);
+  
+    pwm_ready = 0;
+    while (app_pwm_channel_duty_set(&PWM1, 0, 50) == NRF_ERROR_BUSY) {
+      nrf_delay_ms(1);
+    }
+    while (!pwm_ready) {
+      nrf_delay_ms(1);
+    }
+    APP_ERROR_CHECK(app_pwm_channel_duty_set(&PWM1, 1, 50));
+    
+}
+
+
+static void pwm_stop() {
+    app_pwm_disable(&PWM1);
+    uint32_t err_code = app_pwm_uninit(&PWM1);
+    APP_ERROR_CHECK(err_code);
+}
+
+static void play_mario() {
+   isTunePlaying = 0;
+   iTune = NOTES_NB;
+   play_tune ();
+}
+
+static void play_tune () {
+  
+  uint32_t err_code, delay, period_us;
+  
+  if (iTune > 1) {
+    // indice non nul
+    if (isTunePlaying) {
+      // on vient de jouer une note
+      // on joue un blanc
+      isTunePlaying = 0;
+      pwm_stop();
+      delay = APP_TIMER_TICKS(1000 / tempo[NOTES_NB - iTune], APP_TIMER_PRESCALER);
+      err_code = app_timer_start(m_sec_tune, delay, NULL);
+      APP_ERROR_CHECK(err_code);
+      
+      iTune--;
+    } else {
+      // on vient de jouer un blanc ou on commence
+      if (iTune - 1 > 1) {
+        // on relance
+        if (melody[NOTES_NB - iTune] > 0) {
+          period_us = 1000000 / melody[NOTES_NB - iTune];
+          pwm_start(period_us);
+        }
+        delay = APP_TIMER_TICKS(1300 / tempo[NOTES_NB - iTune], APP_TIMER_PRESCALER);
+        err_code = app_timer_start(m_sec_tune, delay, NULL);
+        APP_ERROR_CHECK(err_code);
+      }
+      
+      isTunePlaying = 1;
+    }
+    
+  }
+  
+}
+
 /**@brief Function for dispatching a BLE stack event to all modules with a BLE stack event handler.
  *
  * @details This function is called from the BLE Stack event interrupt handler after a BLE stack
@@ -1350,7 +1453,6 @@ static void buttons_leds_init(bool * p_erase_bonds)
     //*p_erase_bonds = (startup_event == BSP_EVENT_CLEAR_BONDING_DATA);
 }
 
-
 /**@brief Function for initializing the Event Scheduler.
  */
 static void scheduler_init(void)
@@ -1403,8 +1505,6 @@ int main(void)
     advertising_init();
     conn_params_init();
 	
-    
-
     ant_profile_setup();
     
     // Start execution.
@@ -1413,9 +1513,8 @@ int main(void)
     
     LEDS_OFF(LEDS_MASK);
     
-    // BSP_LED_0_MASK  BSP_LED_1_MASK BSP_LED_2_MASK
-    LEDS_ON(BSP_LED_1_MASK);
-		
+    play_mario();
+    
     // Enter main loop.
     for (;;)
     {

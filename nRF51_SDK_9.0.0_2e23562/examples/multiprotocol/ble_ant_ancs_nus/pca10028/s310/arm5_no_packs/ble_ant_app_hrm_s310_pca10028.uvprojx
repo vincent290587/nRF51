@@ -363,9 +363,9 @@
             <useXO>0</useXO>
             <VariousControls>
               <MiscControls>--c99</MiscControls>
-              <Define>BSP_SIMPLE BSP_MAIN BLE_STACK_SUPPORT_REQD ANT_STACK_SUPPORT_REQD BOARD_PCA10028 S310 NRF51 SOFTDEVICE_PRESENT SWI_DISABLE0</Define>
+              <Define>BLE_STACK_SUPPORT_REQD ANT_STACK_SUPPORT_REQD BOARD_PCA10028 S310 NRF51 SOFTDEVICE_PRESENT SWI_DISABLE0</Define>
               <Undefine></Undefine>
-              <IncludePath>..\..\..\config;..\..\..\..\..\bsp;..\..\..\..\..\..\components\softdevice\s310\headers;..\..\..\..\..\..\components\ble\common;..\..\..\..\..\..\components\softdevice\common\softdevice_handler;..\..\..\..\..\..\components\libraries\sensorsim;..\..\..\..\..\..\components\ble\ble_services\ble_hrs;..\..\..\..\..\..\components\ble\ble_services\ble_dis;..\..\..\..\..\..\components\ble\ble_services\ble_bas;..\..\..\..\..\..\components\drivers_nrf\hal;..\..\..\..\..\..\components\ant\ant_stack_config;..\..\..\..\..\..\components\device;..\..\..\..\..\..\components\toolchain;..\..\..\..\..\..\components\libraries\util;..\..\..\..\..\..\components\libraries\button;..\..\..\..\..\..\components\drivers_nrf\gpiote;..\..\..\..\..\..\components\drivers_nrf\config;..\..\..\..\..\..\components\drivers_nrf\common;..\..\..\..\..\..\components\ble\device_manager;..\..\..\..\..\..\components\libraries\timer;..\..\..\..\..\..\components\drivers_nrf\pstorage;..\..\..\..\..\..\components\libraries\trace;..\..\..\..\..\..\components\drivers_nrf\uart;..\..\..\..\..\..\components\ble\ble_services\ble_ancs_c;..\..\..\..\..\..\components\ble\ble_db_discovery;..\..\..\..\..\..\components\ble\ble_advertising;..\..\..\..\..\..\components\libraries\scheduler;..\..\..\..\..\..\components\ant\ant_channel_config;..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm;..\..\..\..\..\..\components\ant\ant_stack_config;..\..\..\..\..\..\components\ant\ant_state_indicator;..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm\utils;..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm\pages;..\..\..\..\..\..\components\libraries\fifo;..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm\pages\logger;..\..\..\..\..\..\components\ant\ant_profiles\ant_cad;..\..\..\..\..\..\components\ant\ant_profiles\ant_glasses;C:\Keil_v5\ARM\Pack\NordicSemiconductor\RTT;..\..\..\..\..\..\components\ble\ble_services\ble_nus</IncludePath>
+              <IncludePath>..\..\..\config;..\..\..\..\..\bsp;..\..\..\..\..\..\components\softdevice\s310\headers;..\..\..\..\..\..\components\ble\common;..\..\..\..\..\..\components\softdevice\common\softdevice_handler;..\..\..\..\..\..\components\libraries\sensorsim;..\..\..\..\..\..\components\ble\ble_services\ble_hrs;..\..\..\..\..\..\components\ble\ble_services\ble_dis;..\..\..\..\..\..\components\ble\ble_services\ble_bas;..\..\..\..\..\..\components\drivers_nrf\hal;..\..\..\..\..\..\components\ant\ant_stack_config;..\..\..\..\..\..\components\device;..\..\..\..\..\..\components\toolchain;..\..\..\..\..\..\components\libraries\util;..\..\..\..\..\..\components\libraries\button;..\..\..\..\..\..\components\drivers_nrf\gpiote;..\..\..\..\..\..\components\drivers_nrf\config;..\..\..\..\..\..\components\drivers_nrf\common;..\..\..\..\..\..\components\ble\device_manager;..\..\..\..\..\..\components\libraries\timer;..\..\..\..\..\..\components\drivers_nrf\pstorage;..\..\..\..\..\..\components\libraries\trace;..\..\..\..\..\..\components\drivers_nrf\uart;..\..\..\..\..\..\components\ble\ble_services\ble_ancs_c;..\..\..\..\..\..\components\ble\ble_db_discovery;..\..\..\..\..\..\components\ble\ble_advertising;..\..\..\..\..\..\components\libraries\scheduler;..\..\..\..\..\..\components\ant\ant_channel_config;..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm;..\..\..\..\..\..\components\ant\ant_stack_config;..\..\..\..\..\..\components\ant\ant_state_indicator;..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm\utils;..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm\pages;..\..\..\..\..\..\components\libraries\fifo;..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm\pages\logger;..\..\..\..\..\..\components\ant\ant_profiles\ant_cad;..\..\..\..\..\..\components\ant\ant_profiles\ant_glasses;C:\Keil_v5\ARM\Pack\NordicSemiconductor\RTT;..\..\..\..\..\..\components\ble\ble_services\ble_nus;..\..\..\..\..\..\components\libraries\pwm;..\..\..\..\..\..\components\drivers_nrf\timer;..\..\..\..\..\..\components\drivers_nrf\ppi</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -455,6 +455,11 @@
                   </Cads>
                 </FileArmAds>
               </FileOption>
+            </File>
+            <File>
+              <FileName>tunes.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\tunes.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -1190,6 +1195,16 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\..\..\..\components\drivers_nrf\uart\app_uart_fifo.c</FilePath>
             </File>
+            <File>
+              <FileName>nrf_drv_timer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\..\components\drivers_nrf\timer\nrf_drv_timer.c</FilePath>
+            </File>
+            <File>
+              <FileName>nrf_drv_ppi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\..\components\drivers_nrf\ppi\nrf_drv_ppi.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1545,6 +1560,11 @@
               <FileName>app_timer_appsh.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\..\..\..\components\libraries\timer\app_timer_appsh.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_pwm.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\..\components\libraries\pwm\app_pwm.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -2083,6 +2103,11 @@
                 </FileArmAds>
               </FileOption>
             </File>
+            <File>
+              <FileName>tunes.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\tunes.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -2817,6 +2842,16 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\..\..\..\components\drivers_nrf\uart\app_uart_fifo.c</FilePath>
             </File>
+            <File>
+              <FileName>nrf_drv_timer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\..\components\drivers_nrf\timer\nrf_drv_timer.c</FilePath>
+            </File>
+            <File>
+              <FileName>nrf_drv_ppi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\..\components\drivers_nrf\ppi\nrf_drv_ppi.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -3172,6 +3207,11 @@
               <FileName>app_timer_appsh.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\..\..\..\components\libraries\timer\app_timer_appsh.c</FilePath>
+            </File>
+            <File>
+              <FileName>app_pwm.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\..\components\libraries\pwm\app_pwm.c</FilePath>
             </File>
           </Files>
         </Group>
