@@ -60,7 +60,7 @@
 #define ANT_DELAY                      APP_TIMER_TICKS(2000, APP_TIMER_PRESCALER)
 
 // Multiple ANT channel settings
-#define ANT_STACK_TOTAL_CHANNELS_ALLOCATED  2               // (SIZE_OF_NONENCRYPTED_ANT_CHANNEL bytes)
+#define ANT_STACK_TOTAL_CHANNELS_ALLOCATED  3               // (SIZE_OF_NONENCRYPTED_ANT_CHANNEL bytes)
 #define ANT_STACK_ENCRYPTED_CHANNELS        0               // (SIZE_OF_ENCRYPTED_ANT_CHANNEL bytes)
 #define ANT_STACK_TX_BURST_QUEUE_SIZE       128             // (128 bytes)
 
@@ -110,7 +110,7 @@ const uint8_t leds_list;
 
 
 static uint32_t led_period;
-static uint8_t led_mask;
+static int      led_mask;
 static uint8_t is_led_off = 0;
 
 
@@ -130,6 +130,21 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
   app_error_handler(DEAD_BEEF, line_num, p_file_name);
 }
 
+
+void app_error_handler(uint32_t error_code, uint32_t line_num, const uint8_t *p_file_name) {
+  
+  if (error_code == NRF_SUCCESS) return;
+
+#ifndef BSP_SIMPLE
+  LEDS_OFF(LEDS_MASK);
+  do {
+    LEDS_OFF(LEDS_MASK);
+    LEDS_ON(LEDS_MASK);
+    nrf_delay_ms(1300);
+    LEDS_OFF(LEDS_MASK);
+  } while (0);
+#endif
+}
 
 
 void uart_error_handle(app_uart_evt_t * p_event)
@@ -173,21 +188,22 @@ float regFenLim(float val_, float b1_i, float b1_f, float b2_i, float b2_f) {
 }
 
 void action_reception(ant_glasses_trans *trans)
-{
-  uint32_t err_code = NRF_SUCCESS;
-  
-  
+{  
   LOG("Action %d %f\n\r", trans->led_mask, trans->avance);
 
   led_mask = 1<<leds_list[trans->led_mask];
   
   if (trans->avance < 20.) {
-    is_led_off = 0;
     led_period = regFenLim(trans->avance, 2., 20., 100., 2000.);
+    if (is_led_off == 1) {
+      is_led_off = 0;
+      (void)app_timer_start(m_sec_leds, APP_TIMER_TICKS(led_period, APP_TIMER_PRESCALER), NULL);
+    }
   } else {
+    LEDS_OFF(LEDS_MASK);
+    led_period = 2000.;
     is_led_off = 1;
   }
-  
   
 }
 
@@ -204,9 +220,10 @@ void ant_evt_glasses (ant_evt_t * p_ant_evt)
 							case EVENT_TX:
                   break;
               case EVENT_RX:
+                  is_glasses_init = 1;
                   ant_glasses_rx_evt_handle(&m_ant_glasses, p_ant_evt, &trans);
                   action_reception(&trans);
-                  //LEDS_INVERT(BSP_LED_0_MASK);
+                  //LEDS_INVERT(BSP_LED_1_MASK);
 									break;
 							case EVENT_RX_FAIL:
 							case EVENT_RX_FAIL_GO_TO_SEARCH:
@@ -214,12 +231,13 @@ void ant_evt_glasses (ant_evt_t * p_ant_evt)
                   LOG("RX fail\n\r");
 									break;
               case EVENT_RX_SEARCH_TIMEOUT:
+                  is_glasses_init = 0;
                   break;
 							case EVENT_CHANNEL_CLOSED:
                   LOG("Reconnexion...\n\r");
                   is_glasses_init = 0;
-									//err_code = app_timer_stop(m_sec_glasses);
-                  LEDS_ON(LEDS_MASK);
+									err_code = app_timer_stop(m_sec_glasses);
+									err_code = app_timer_start(m_sec_glasses, ANT_DELAY, NULL);
 									break;
 					}
     
@@ -264,16 +282,15 @@ static void leds_blink ()
   // temps led eteinte
   delay = regFenLim(led_period, 0., 2500., 50., 250.);
   
-  LEDS_ON(LEDS_MASK);
-  if (is_led_off == 0) {
-    LEDS_OFF(led_mask);
-    nrf_delay_ms(delay);
+  LEDS_OFF(LEDS_MASK);
+  
+  if (is_led_off == 0 && is_glasses_init != 0) {
     LEDS_ON(led_mask);
+    nrf_delay_ms(delay);
+    LEDS_OFF(led_mask);
+    err_code = app_timer_start(m_sec_leds, APP_TIMER_TICKS(led_period, APP_TIMER_PRESCALER), NULL);
+    LOG("LED period= %d\n\r", led_period);
   }
-  
-  LOG("LED period= %d\n\r", led_period);
-  
-  err_code = app_timer_start(m_sec_leds, APP_TIMER_TICKS(led_period, APP_TIMER_PRESCALER), NULL);
   
   return;
 }
@@ -453,17 +470,15 @@ int main(void)
 {
   uint32_t err_code;
   
-    LEDS_OFF(LEDS_MASK);
     // Initialize.
     app_trace_init();
     timers_init();
-    uart_init();
+    //uart_init();
     buttons_leds_init();
-    
+    LEDS_ON(LEDS_MASK);
     stack_init();
   
     scheduler_init();
-    
     
     LOG("Reboot\n");
   
@@ -473,7 +488,8 @@ int main(void)
     
     ant_profile_setup();
   
-    LEDS_ON(LEDS_MASK);
+    nrf_delay_ms(300);
+    LEDS_OFF(LEDS_MASK);
     // Enter main loop.
     for (;;)
     {
