@@ -200,7 +200,6 @@ void action_reception(ant_glasses_trans *trans)
       (void)app_timer_start(m_sec_leds, APP_TIMER_TICKS(led_period, APP_TIMER_PRESCALER), NULL);
     }
   } else {
-    LEDS_OFF(LEDS_MASK);
     led_period = 2000.;
     is_led_off = 1;
   }
@@ -236,7 +235,7 @@ void ant_evt_glasses (ant_evt_t * p_ant_evt)
 							case EVENT_CHANNEL_CLOSED:
                   LOG("Reconnexion...\n\r");
                   is_glasses_init = 0;
-									err_code = app_timer_stop(m_sec_glasses);
+									//err_code = app_timer_stop(m_sec_glasses);
 									err_code = app_timer_start(m_sec_glasses, ANT_DELAY, NULL);
 									break;
 					}
