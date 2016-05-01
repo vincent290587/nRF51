@@ -45,6 +45,7 @@
 #include "ble_hci.h"
 #include "app_scheduler.h"
 #include "app_timer_appsh.h"
+#include "app_util_platform.h"
 #include "nrf_error.h"
 #include "bsp.h"
 #include "softdevice_handler_appsh.h"
@@ -63,13 +64,18 @@
 #define UPDATE_IN_PROGRESS_LED          BSP_LED_2                                               /**< Led used to indicate that DFU is active. */
 
 #define APP_TIMER_PRESCALER             0                                                       /**< Value of the RTC1 PRESCALER register. */
-#define APP_TIMER_MAX_TIMERS            3                                                       /**< Maximum number of simultaneously created timers. */
+#define APP_TIMER_MAX_TIMERS            4                                                       /**< Maximum number of simultaneously created timers. */
 #define APP_TIMER_OP_QUEUE_SIZE         4                                                       /**< Size of timer operation queues. */
 
 #define SCHED_MAX_EVENT_DATA_SIZE       MAX(APP_TIMER_SCHED_EVT_SIZE, 0)                        /**< Maximum size of scheduler events. */
 
+#define WD_FEED_INTERVAL APP_TIMER_TICKS(500, APP_TIMER_PRESCALER)
+
+
 #define SCHED_QUEUE_SIZE                20                                                      /**< Maximum number of events in the scheduler queue. */
 
+nrf_drv_wdt_channel_id wdt_channel_id;
+app_timer_id_t m_wd_feed_timer_id;
 
 /**@brief Callback function for asserts in the SoftDevice.
  *
@@ -87,6 +93,10 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
     app_error_handler(0xDEADBEEF, line_num, p_file_name);
 }
 
+static void wd_feed_timeout_handler(void * p_context) {
+  UNUSED_PARAMETER(p_context);
+  nrf_drv_wdt_feed();
+}
 
 /**@brief Function for initialization of LEDs.
  */
@@ -100,19 +110,18 @@ static void leds_init(void)
  */
 static void timers_init(void)
 {
+    uint32_t err_code;
+  
     // Initialize timer module, making it use the scheduler.
     APP_TIMER_APPSH_INIT(APP_TIMER_PRESCALER, APP_TIMER_MAX_TIMERS, APP_TIMER_OP_QUEUE_SIZE, true);
-}
-
-
-/**@brief Function for initializing the button module.
- */
-static void buttons_init(void)
-{
-    nrf_gpio_cfg_sense_input(BOOTLOADER_BUTTON,
-                             NRF_GPIO_PIN_PULLUP, 
-                             NRF_GPIO_PIN_SENSE_LOW);
-
+  
+    // init timer
+    err_code = app_timer_create(&m_wd_feed_timer_id, APP_TIMER_MODE_REPEATED, wd_feed_timeout_handler);
+    APP_ERROR_CHECK(err_code);
+  
+    // Start timer.
+    err_code = app_timer_start(m_wd_feed_timer_id, WD_FEED_INTERVAL, NULL);
+    APP_ERROR_CHECK(err_code);
 }
 
 
@@ -185,14 +194,16 @@ int main(void)
     uint32_t err_code;
     bool     dfu_start = false;
     bool     app_reset = (NRF_POWER->GPREGRET == BOOTLOADER_DFU_START);
-
-    if (app_reset)
-    {
+  
+    if (app_reset) {
         NRF_POWER->GPREGRET = 0;
     }
-    
-    nrf_drv_wdt_channel_feed(NRF_WDT_RR0);
+  
     leds_init();
+  
+    // WDT hotstart for WDT servicing
+    nrf_drv_wdt_hotstart();
+    nrf_drv_wdt_feed();
 
     // This check ensures that the defined fields in the bootloader corresponds with actual
     // setting in the nRF51 chip.
@@ -201,13 +212,11 @@ int main(void)
 
     // Initialize.
     timers_init();
-    //buttons_init();
 
     (void)bootloader_init();
 
     if (bootloader_dfu_sd_in_progress())
     {
-        nrf_drv_wdt_channel_feed(0);
         nrf_gpio_pin_clear(UPDATE_IN_PROGRESS_LED);
 
         err_code = bootloader_dfu_sd_update_continue();
@@ -229,9 +238,7 @@ int main(void)
     }
 
     dfu_start = app_reset;
-    //dfu_start |= ((nrf_gpio_pin_read(BOOTLOADER_BUTTON) == 0) ? true: false);
     
-    //  || (!bootloader_app_is_valid(DFU_BANK_0_REGION_START))
     if (dfu_start || (!bootloader_app_is_valid(DFU_BANK_0_REGION_START)))
     {
         nrf_gpio_pin_clear(UPDATE_IN_PROGRESS_LED);
