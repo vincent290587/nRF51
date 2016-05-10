@@ -278,9 +278,9 @@ void app_error_handler(uint32_t error_code, uint32_t line_num, const uint8_t *p_
   if (error_code == NRF_SUCCESS) return;
   
   if (p_file_name) {
-    printf("$DBG,1,%d,%d,%s\n\r", error_code, line_num, p_file_name);
+    printf("$DBG,1,%lu,%lu,%s\n\r", error_code, line_num, p_file_name);
   } else {
-    printf("$DBG,0,%d,%d\n\r", error_code, line_num);
+    printf("$DBG,0,%lu,%lu\n\r", error_code, line_num);
   }
 
 #ifndef BSP_SIMPLE
@@ -932,7 +932,7 @@ static uint32_t device_manager_evt_handler(dm_handle_t const * p_handle,
                                            ret_code_t          event_result)
 {
     uint32_t err_code;
-    app_error_handler(event_result, 0, "device_mgr");
+    app_error_handler(event_result, 0, (uint8_t*)"device_mgr");
     ble_ancs_c_on_device_manager_evt(&m_ancs_c, p_handle, p_evt);
 
     switch (p_evt->event_id)
@@ -964,13 +964,13 @@ static uint32_t device_manager_evt_handler(dm_handle_t const * p_handle,
 
 /**@brief Function for initializing the Device Manager.
  *
- * @param[in] erase_bonds  Indicates whether bonding information should be cleared from
+ * @param[in] p_erase_bonds  Indicates whether bonding information should be cleared from
  *                         persistent storage during initialization of the Device Manager.
  */
-static void device_manager_init(bool erase_bonds)
+static void device_manager_init(bool p_erase_bonds)
 {
     uint32_t               err_code;
-    dm_init_param_t        init_param = {.clear_persistent_data = erase_bonds};
+    dm_init_param_t        init_param = {.clear_persistent_data = p_erase_bonds};
     dm_application_param_t register_param;
 
     // Initialize persistent storage module.
@@ -1116,7 +1116,7 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
             // No implementation needed.
             break;
     }
-    app_error_handler(err_code, 0, "on_ble_evt");
+    app_error_handler(err_code, 0, (uint8_t*)"on_ble_evt");
 }
 
 
@@ -1551,6 +1551,7 @@ void wdt_event_handler(void)
  */
 int main(void)
 {
+    bool     erase_bonds = false;
     uint32_t err_code;
   
     //Configure WDT.
