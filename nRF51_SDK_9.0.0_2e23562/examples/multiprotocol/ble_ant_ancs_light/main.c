@@ -1551,7 +1551,6 @@ void wdt_event_handler(void)
  */
 int main(void)
 {
-    bool     erase_bonds;
     uint32_t err_code;
   
     //Configure WDT.
