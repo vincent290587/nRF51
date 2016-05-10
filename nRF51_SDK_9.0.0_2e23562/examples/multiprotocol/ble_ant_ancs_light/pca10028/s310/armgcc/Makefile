@@ -52,6 +52,7 @@ $(abspath ../../../../../../components/libraries/pwm/app_pwm.c) \
 $(abspath ../../../../../../components/libraries/util/nrf_assert.c) \
 $(abspath ../../../../../../components/libraries/uart/retarget.c) \
 $(abspath ../../../../../../components/libraries/bootloader_dfu/bootloader_util.c) \
+$(abspath ../../../../../../components/libraries/bootloader_dfu/dfu_app_handler.c) \
 $(abspath ../../../../../../components/drivers_nrf/uart/app_uart_fifo.c) \
 $(abspath ../../../../../../components/drivers_nrf/hal/nrf_delay.c) \
 $(abspath ../../../../../../components/drivers_nrf/common/nrf_drv_common.c) \
@@ -97,6 +98,8 @@ INC_PATHS += -I$(abspath ../../../../../../components/libraries/dfu)
 INC_PATHS += -I$(abspath ../../../../../../components/libraries/fifo)
 INC_PATHS += -I$(abspath ../../../../../../components/libraries/util)
 INC_PATHS += -I$(abspath ../../../../../../components/libraries/button)
+INC_PATHS += -I$(abspath ../../../../../../components/libraries/trace)
+INC_PATHS += -I$(abspath ../../../../../../components/libraries/bootloader_dfu)
 INC_PATHS += -I$(abspath ../../../../../../components/libraries/pwm)
 INC_PATHS += -I$(abspath ../../../../../../components/libraries/timer)
 INC_PATHS += -I$(abspath ../../../../../../components/drivers_nrf/pstorage)
@@ -107,6 +110,7 @@ INC_PATHS += -I$(abspath ../../../../../../components/drivers_nrf/timer)
 INC_PATHS += -I$(abspath ../../../../../../components/drivers_nrf/wdt)
 INC_PATHS += -I$(abspath ../../../../../../components/ble/common)
 INC_PATHS += -I$(abspath ../../../../../../components/ble/device_manager)
+INC_PATHS += -I$(abspath ../../../../../../components/ble/ble_services/ble_dfu)
 INC_PATHS += -I$(abspath ../../../../../../components/ble/ble_services/ble_dis)
 INC_PATHS += -I$(abspath ../../../../../../components/ble/ble_services/ble_ancs_c)
 INC_PATHS += -I$(abspath ../../../../../../components/device)
@@ -126,7 +130,6 @@ INC_PATHS += -I$(abspath ../../../../../../components/toolchain/gcc)
 INC_PATHS += -I$(abspath ../../../../../../components/toolchain)
 INC_PATHS += -I$(abspath ../../../../../../components/drivers_nrf/common)
 INC_PATHS += -I$(abspath ../../../../../../components/ble/ble_advertising)
-INC_PATHS += -I$(abspath ../../../../../../components/libraries/trace)
 INC_PATHS += -I$(abspath ../../../../../../components/ble/ble_services/ble_bas)
 INC_PATHS += -I$(abspath ../../../../../../components/softdevice/common/softdevice_handler)
 
@@ -147,6 +150,7 @@ CFLAGS += -DNRF51
 CFLAGS += -DANT_STACK_SUPPORT_REQD
 CFLAGS += -DBLE_STACK_SUPPORT_REQD
 CFLAGS += -DBSP_UART_SUPPORT
+CFLAGS += -DBLE_DFU_APP_SUPPORT
 CFLAGS += -DS310
 CFLAGS += -mcpu=cortex-m0
 CFLAGS += -mthumb -mabi=aapcs --std=gnu99
@@ -170,6 +174,7 @@ ASMFLAGS += -x assembler-with-cpp
 ASMFLAGS += -DSWI_DISABLE0
 ASMFLAGS += -DBOARD_PCA10028
 ASMFLAGS += -DSOFTDEVICE_PRESENT
+ASMFLAGS += -DDBLE_DFU_APP_SUPPORT
 ASMFLAGS += -DNRF51
 ASMFLAGS += -DANT_STACK_SUPPORT_REQD
 ASMFLAGS += -DBLE_STACK_SUPPORT_REQD

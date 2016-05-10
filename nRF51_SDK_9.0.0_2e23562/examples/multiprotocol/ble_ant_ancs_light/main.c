@@ -163,40 +163,6 @@ STATIC_ASSERT(IS_SRVC_CHANGED_CHARACT_PRESENT);                                 
 #endif 
 
 
-static const char * lit_catid[BLE_ANCS_NB_OF_CATEGORY_ID] =
-{
-    "Other",
-    "Incoming Call",
-    "Missed Call",
-    "Voice Mail",
-    "Social",
-    "Schedule",
-    "Email",
-    "News",
-    "Health And Fitness",
-    "Business And Finance",
-    "Location",
-    "Entertainment"
-};
-
-static const char * lit_eventid[BLE_ANCS_NB_OF_EVT_ID] =
-{
-    "Added",
-    "Modified",
-    "Removed"
-};
-
-static const char * lit_attrid[BLE_ANCS_NB_OF_ATTRS] =
-{
-    "App Identifier",
-    "Title",
-    "Subtitle",
-    "Message",
-    "Message Size",
-    "Date",
-    "Positive Action Label",
-    "Negative Action Label"
-};
 
 static volatile bool ready_flag;            // A flag indicating PWM status.
 
