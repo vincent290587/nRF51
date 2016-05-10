@@ -58,10 +58,11 @@
 #include "app_timer_appsh.h"
 #include "app_pwm.h"
 
+
 #ifdef BLE_DFU_APP_SUPPORT
 #include "ble_dfu.h"
 #include "dfu_app_handler.h"
-#endif // BLE_DFU_APP_SUPPORT
+#endif
 
 #include "nrf_drv_wdt.h"
 
@@ -153,8 +154,9 @@ STATIC_ASSERT(IS_SRVC_CHANGED_CHARACT_PRESENT);                                 
 #endif // BLE_DFU_APP_SUPPORT
 
 
-//APP_PWM_INSTANCE(PWM1, 1);                   // Create the instance "PWM1" using TIMER1.
-
+#ifdef USE_TUNES
+APP_PWM_INSTANCE(PWM1, 1);                   // Create the instance "PWM1" using TIMER1.
+#endif
 
 #ifdef TRACE_DEBUG
 #define LOG printf
@@ -180,7 +182,9 @@ static ble_gap_sec_params_t      m_sec_param;                              /**< 
 static app_timer_id_t            m_sec_req_timer_id;                       /**< Security request timer. The timer lets us start pairing request if one does not arrive from the Central. */
 static app_timer_id_t            m_sec_hrm;
 static app_timer_id_t            m_sec_cad;
+#ifdef USE_TUNES
 static app_timer_id_t            m_sec_tune;
+#endif
 
 #ifdef BLE_DFU_APP_SUPPORT    
 static ble_dfu_t                         m_dfus;                                    /**< Structure used to identify the DFU service. */
@@ -218,9 +222,16 @@ nrf_drv_wdt_channel_id wdt_channel_id;
 static uint8_t is_hrm_init = 0;
 static uint8_t is_cad_init = 0;
 
+
+#ifdef USE_TUNES
 static uint8_t isTunePlaying = 0;
 static uint32_t iTune = 0;
+static uint8_t pwm_ready = 0;
 static void play_mario(void);
+
+static void pwm_start(uint32_t period_us);
+static void play_tune(void);
+#endif
 
 #if (LEDS_NUMBER > 0)
 const uint8_t leds_list[LEDS_NUMBER] = LEDS_LIST;
@@ -235,9 +246,6 @@ static uint8_t read_byte[100];
 static uint8_t glasses_payload[8];
 static uint16_t status_byte;
 
-static uint8_t pwm_ready = 0;
-
-//static void play_tune ();
 
 void app_error_handler(uint32_t error_code, uint32_t line_num, const uint8_t *p_file_name) {
   
@@ -274,19 +282,18 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
     app_error_handler(DEAD_BEEF, line_num, p_file_name);
 }
 
-
+#ifdef USE_TUNES
 static void pwm_ready_callback(uint32_t pwm_id)    // PWM callback function
 {
     pwm_ready = 1;
 }
 
 
-
 // on fait un ping sur iOS pour eviter la deconnexion
 static void sec_tune(void * p_context) {
    //play_tune();
 }
-
+#endif
 
 uint8_t encode (uint8_t byte) {
   
@@ -299,7 +306,19 @@ uint8_t encode (uint8_t byte) {
      case '\n':
        LOG("%s\n\r", read_byte);
        status_byte = 0;
-       //memset(read_byte, 0, sizeof(read_byte));
+       
+#ifdef USE_TUNES
+		   if (read_byte[0]=='T' && read_byte[1]=='U') {
+				 switch(read_byte[2]) {
+				   case '0':
+						 play_mario();
+						 break;
+					 case '1':
+						 break;
+				 }
+				 return 0;
+			 }
+#endif
        return 1;
      
      default:
@@ -529,8 +548,9 @@ void ant_evt_dispatch(ant_evt_t * p_ant_evt)
 				break;
 		}
 
-    // BSP_LED_0_MASK  BSP_LED_1_MASK BSP_LED_2_MASK
+#ifndef BSP_SIMPLE
     LEDS_INVERT(BSP_LED_2_MASK);
+#endif
 }
 
 
@@ -662,9 +682,10 @@ static void timers_init(void)
     err_code = app_timer_create(&m_sec_cad, APP_TIMER_MODE_SINGLE_SHOT, cad_connect);
     APP_ERROR_CHECK(err_code);
   
+#ifdef USE_TUNES
     err_code = app_timer_create(&m_sec_tune, APP_TIMER_MODE_SINGLE_SHOT, sec_tune);
     APP_ERROR_CHECK(err_code);
-  
+#endif
 }
 
 
@@ -1033,7 +1054,7 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
 static void on_ble_evt(ble_evt_t * p_ble_evt)
 {
     uint32_t err_code = NRF_SUCCESS;
-    
+    uint8_t var = 20;
 
     switch (p_ble_evt->header.evt_id)
     {
@@ -1058,7 +1079,7 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
             LEDS_OFF(BSP_LED_1_MASK);
 
 #ifndef BSP_SIMPLE
-            uint8_t var = 20;
+            
             LEDS_OFF(LEDS_MASK);
             while (var--) {
               nrf_delay_ms(200);
@@ -1096,17 +1117,13 @@ static void bsp_event_handler(bsp_event_t event)
     
     switch (event)
     {
-        case BSP_EVENT_SLEEP:
-            // sleep_mode
+        case BSP_EVENT_KEY_0:
+            ble_ancs_c_request_attrs(&m_notification_latest);
             break;
-
-        case BSP_EVENT_DISCONNECT:
+				case BSP_EVENT_KEY_1:
+            ble_ancs_c_request_attrs(&m_notification_latest);
             break;
-
-        case BSP_EVENT_WHITELIST_OFF:
-            break;
-
-        case BSP_EVENT_KEY_1:
+			  case BSP_EVENT_KEY_2:
             ble_ancs_c_request_attrs(&m_notification_latest);
             break;
 
@@ -1115,83 +1132,84 @@ static void bsp_event_handler(bsp_event_t event)
     }
 }
 
+#ifdef USE_TUNES
+static void pwm_start(uint32_t period_us) {
+  
+    /* 2-channel PWM, 200Hz, output on DK LED pins. */
+    app_pwm_config_t pwm1_cfg = APP_PWM_DEFAULT_CONFIG_2CH(period_us, 22, 24);
+    
+    /* Switch the polarity of the second channel. */
+    pwm1_cfg.pin_polarity[1] = APP_PWM_POLARITY_ACTIVE_HIGH;
+  
+    //app_pwm_config_t pwm1_cfg = APP_PWM_DEFAULT_CONFIG_1CH(period_us, 22);
+    //nrf_gpio_cfg_output(24);
+    //nrf_gpio_pin_clear(24);
+    
+    /* Initialize and enable PWM. */
+    uint32_t err_code = app_pwm_init(&PWM1,&pwm1_cfg, pwm_ready_callback);
+    APP_ERROR_CHECK(err_code);
+    app_pwm_enable(&PWM1);
+  
+    pwm_ready = 0;
+    while (app_pwm_channel_duty_set(&PWM1, 0, 50) == NRF_ERROR_BUSY) {
+      nrf_delay_ms(1);
+    }
+    while (!pwm_ready) {
+      nrf_delay_ms(1);
+    }
+    APP_ERROR_CHECK(app_pwm_channel_duty_set(&PWM1, 1, 50));
+    
+}
 
-//static void pwm_start(uint32_t period_us) {
-//  
-//    /* 2-channel PWM, 200Hz, output on DK LED pins. */
-//    app_pwm_config_t pwm1_cfg = APP_PWM_DEFAULT_CONFIG_2CH(period_us, 22, 24);
-//    
-//    /* Switch the polarity of the second channel. */
-//    pwm1_cfg.pin_polarity[1] = APP_PWM_POLARITY_ACTIVE_HIGH;
-//  
-//    //app_pwm_config_t pwm1_cfg = APP_PWM_DEFAULT_CONFIG_1CH(period_us, 22);
-//    //nrf_gpio_cfg_output(24);
-//    //nrf_gpio_pin_clear(24);
-//    
-//    /* Initialize and enable PWM. */
-//    uint32_t err_code = app_pwm_init(&PWM1,&pwm1_cfg, pwm_ready_callback);
-//    APP_ERROR_CHECK(err_code);
-//    app_pwm_enable(&PWM1);
-//  
-//    pwm_ready = 0;
-//    while (app_pwm_channel_duty_set(&PWM1, 0, 50) == NRF_ERROR_BUSY) {
-//      nrf_delay_ms(1);
-//    }
-//    while (!pwm_ready) {
-//      nrf_delay_ms(1);
-//    }
-//    APP_ERROR_CHECK(app_pwm_channel_duty_set(&PWM1, 1, 50));
-//    
-//}
 
+static void pwm_stop() {
+    app_pwm_disable(&PWM1);
+    uint32_t err_code = app_pwm_uninit(&PWM1);
+    APP_ERROR_CHECK(err_code);
+}
 
-//static void pwm_stop() {
-//    app_pwm_disable(&PWM1);
-//    uint32_t err_code = app_pwm_uninit(&PWM1);
-//    APP_ERROR_CHECK(err_code);
-//}
+static void play_mario() {
+   isTunePlaying = 0;
+   iTune = NOTES_NB;
+   play_tune ();
+}
 
-//static void play_mario() {
-//   isTunePlaying = 0;
-//   iTune = NOTES_NB;
-//   play_tune ();
-//}
-
-//static void play_tune () {
-//  
-//  uint32_t err_code, delay, period_us;
-//  
-//  if (iTune > 1) {
-//    // indice non nul
-//    if (isTunePlaying) {
-//      // on vient de jouer une note
-//      // on joue un blanc
-//      isTunePlaying = 0;
-//      pwm_stop();
-//      delay = APP_TIMER_TICKS(1000 / tempo[NOTES_NB - iTune], APP_TIMER_PRESCALER);
-//      err_code = app_timer_start(m_sec_tune, delay, NULL);
-//      APP_ERROR_CHECK(err_code);
-//      
-//      iTune--;
-//    } else {
-//      // on vient de jouer un blanc ou on commence
-//      if (iTune - 1 > 1) {
-//        // on relance
-//        if (melody[NOTES_NB - iTune] > 0) {
-//          period_us = 1000000 / melody[NOTES_NB - iTune];
-//          pwm_start(period_us);
-//        }
-//        delay = APP_TIMER_TICKS(1300 / tempo[NOTES_NB - iTune], APP_TIMER_PRESCALER);
-//        err_code = app_timer_start(m_sec_tune, delay, NULL);
-//        APP_ERROR_CHECK(err_code);
-//      }
-//      
-//      isTunePlaying = 1;
-//    }
-//    
-//  }
-//  
-//}
+static void play_tune (void) {
+  
+  uint32_t err_code, delay, period_us;
+  
+  if (iTune > 1) {
+    // indice non nul
+    if (isTunePlaying) {
+      // on vient de jouer une note
+      // on joue un blanc
+      isTunePlaying = 0;
+      pwm_stop();
+      delay = APP_TIMER_TICKS(1000 / tempo[NOTES_NB - iTune], APP_TIMER_PRESCALER);
+      err_code = app_timer_start(m_sec_tune, delay, NULL);
+      APP_ERROR_CHECK(err_code);
+      
+      iTune--;
+    } else {
+      // on vient de jouer un blanc ou on commence
+      if (iTune - 1 > 1) {
+        // on relance
+        if (melody[NOTES_NB - iTune] > 0) {
+          period_us = 1000000 / melody[NOTES_NB - iTune];
+          pwm_start(period_us);
+        }
+        delay = APP_TIMER_TICKS(1300 / tempo[NOTES_NB - iTune], APP_TIMER_PRESCALER);
+        err_code = app_timer_start(m_sec_tune, delay, NULL);
+        APP_ERROR_CHECK(err_code);
+      }
+      
+      isTunePlaying = 1;
+    }
+    
+  }
+  
+}
+#endif
 
 /**@brief Function for dispatching a BLE stack event to all modules with a BLE stack event handler.
  *
@@ -1472,8 +1490,6 @@ static void buttons_leds_init(bool * p_erase_bonds)
 
     APP_ERROR_CHECK(err_code);
 
-    //err_code = bsp_btn_ble_init(NULL, &startup_event);
-    //APP_ERROR_CHECK(err_code);
 
     //*p_erase_bonds = (startup_event == BSP_EVENT_CLEAR_BONDING_DATA);
 }

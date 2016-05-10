@@ -59,6 +59,8 @@ $(abspath ../../../../../../components/drivers_nrf/common/nrf_drv_common.c) \
 $(abspath ../../../../../../components/drivers_nrf/gpiote/nrf_drv_gpiote.c) \
 $(abspath ../../../../../../components/drivers_nrf/pstorage/pstorage.c) \
 $(abspath ../../../../../../components/drivers_nrf/wdt/nrf_drv_wdt.c) \
+$(abspath ../../../../../../components/drivers_nrf/ppi/nrf_drv_ppi.c) \
+$(abspath ../../../../../../components/drivers_nrf/timer/nrf_drv_timer.c) \
 $(abspath ../../../../../../components/ant/ant_stack_config/ant_stack_config.c) \
 $(abspath ../../../../../../components/ant/ant_state_indicator/ant_state_indicator.c) \
 $(abspath ../../../../../../components/ant/ant_profiles/ant_glasses/ant_glasses.c) \
@@ -151,6 +153,7 @@ CFLAGS += -DANT_STACK_SUPPORT_REQD
 CFLAGS += -DBLE_STACK_SUPPORT_REQD
 CFLAGS += -DBSP_UART_SUPPORT
 CFLAGS += -DBLE_DFU_APP_SUPPORT
+CFLAGS += -DUSE_TUNES
 CFLAGS += -DS310
 CFLAGS += -mcpu=cortex-m0
 CFLAGS += -mthumb -mabi=aapcs --std=gnu99
@@ -175,6 +178,7 @@ ASMFLAGS += -DSWI_DISABLE0
 ASMFLAGS += -DBOARD_PCA10028
 ASMFLAGS += -DSOFTDEVICE_PRESENT
 ASMFLAGS += -DDBLE_DFU_APP_SUPPORT
+ASMFLAGS += -DUSE_TUNES
 ASMFLAGS += -DNRF51
 ASMFLAGS += -DANT_STACK_SUPPORT_REQD
 ASMFLAGS += -DBLE_STACK_SUPPORT_REQD
