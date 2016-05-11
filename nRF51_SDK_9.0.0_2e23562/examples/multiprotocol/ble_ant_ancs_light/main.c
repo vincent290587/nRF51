@@ -1545,9 +1545,6 @@ int main(void)
     APP_ERROR_CHECK(err_code);
     nrf_drv_wdt_enable();
 #endif
-  
-    // Initialize.
-    app_trace_init();
     
     timers_init();
     uart_init();
@@ -1587,7 +1584,9 @@ int main(void)
         power_manage();
         
         // WDT feed
+#if (WDT_ENABLED == 1)
         nrf_drv_wdt_channel_feed(wdt_channel_id);
+#endif
     }
 
 }
