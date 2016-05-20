@@ -249,9 +249,9 @@ void app_error_handler(uint32_t error_code, uint32_t line_num, const uint8_t *p_
   if (error_code == NRF_SUCCESS) return;
   
   if (p_file_name) {
-    printf("$DBG,1,%ud,%ud,%s\n\r", error_code, line_num, p_file_name);
+    printf("$DBG,1,%u,%u,%s\n\r", (unsigned int)error_code, (unsigned int)line_num, p_file_name);
   } else {
-    printf("$DBG,0,%ud,%ud\n\r", error_code, line_num);
+    printf("$DBG,0,%u,%u\n\r", (unsigned int)error_code, (unsigned int)line_num);
   }
 
 #if LEDS_NUMBER > 0
