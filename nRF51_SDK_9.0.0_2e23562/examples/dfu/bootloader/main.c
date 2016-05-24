@@ -54,14 +54,12 @@
 
 #include "nrf_drv_wdt.h"
 
-#if LEDS_NUMBER < 1
-#error "Not enough LEDs on board"
-#endif
 
 #define IS_SRVC_CHANGED_CHARACT_PRESENT 1                                                       /**< Include the service_changed characteristic. For DFU this should normally be the case. */
 
-#define BOOTLOADER_BUTTON               28                                            /**< Button used to enter SW update mode. */
-#define UPDATE_IN_PROGRESS_LED          BSP_LED_2                                               /**< Led used to indicate that DFU is active. */
+#define BOOTLOADER_BUTTON               23                                            /**< Button used to enter SW update mode. */
+#define GPIO_BUTTON                     30
+#define UPDATE_IN_PROGRESS_LED          18     // unused pin on M4
 
 #define APP_TIMER_PRESCALER             0                                                       /**< Value of the RTC1 PRESCALER register. */
 #define APP_TIMER_MAX_TIMERS            4                                                       /**< Maximum number of simultaneously created timers. */
@@ -100,10 +98,26 @@ static void wd_feed_timeout_handler(void * p_context) {
 
 /**@brief Function for initialization of LEDs.
  */
+#if LEDS_NUMBER > 0
 static void leds_init(void)
 {
     nrf_gpio_cfg_output(UPDATE_IN_PROGRESS_LED);
     nrf_gpio_pin_set(UPDATE_IN_PROGRESS_LED);
+}
+#endif
+
+/**@brief Function for initializing the button module.
+ */
+static void buttons_init(void)
+{
+    nrf_gpio_cfg_output(GPIO_BUTTON);
+    // pin to ground
+    nrf_gpio_pin_clear(GPIO_BUTTON);
+  
+    nrf_gpio_cfg_sense_input(BOOTLOADER_BUTTON,
+                             NRF_GPIO_PIN_PULLUP, 
+                             NRF_GPIO_PIN_SENSE_LOW);
+
 }
 
 /**@brief Function for initializing the timer handler module (app_timer).
@@ -168,7 +182,9 @@ static void ble_stack_init(bool init_softdevice)
     
     // Below code line is needed for s130. For s110 is inrrelevant - but executable
     // can run with both s130 and s110.
+#if defined(S130) || defined(S310)
     ble_enable_params.gatts_enable_params.attr_tab_size   = BLE_GATTS_ATTR_TAB_SIZE_DEFAULT;
+#endif
 
     ble_enable_params.gatts_enable_params.service_changed = IS_SRVC_CHANGED_CHARACT_PRESENT;
     err_code = sd_ble_enable(&ble_enable_params);
@@ -198,12 +214,16 @@ int main(void)
     if (app_reset) {
         NRF_POWER->GPREGRET = 0;
     }
-  
-    leds_init();
-  
+    
     // WDT hotstart for WDT servicing
     nrf_drv_wdt_hotstart();
     nrf_drv_wdt_feed();
+    
+    // Peripherals init
+#if LEDS_NUMBER > 0
+    leds_init();
+#endif
+    buttons_init();
 
     // This check ensures that the defined fields in the bootloader corresponds with actual
     // setting in the nRF51 chip.
@@ -238,6 +258,7 @@ int main(void)
     }
 
     dfu_start = app_reset;
+    dfu_start |= ((nrf_gpio_pin_read(BOOTLOADER_BUTTON) == 0) ? true: false);
     
     if (dfu_start || (!bootloader_app_is_valid(DFU_BANK_0_REGION_START)))
     {
