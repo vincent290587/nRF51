@@ -98,7 +98,7 @@ const uint16_t melody[] = {
   NOTE_G7, 0, 0,  0,
   NOTE_G6, 0, 0, 0
 };
-//Mario main them tempo
+//Mario main theme tempo
 const uint8_t tempo[] = {
   12, 12, 12, 12,
   12, 12, 12, 12,

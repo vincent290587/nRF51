@@ -40,22 +40,26 @@ uint32_t ant_glasses_open(ant_glasses_profile_t * p_profile)
 
 
 
-void ant_glasses_tx_evt_handle(uint8_t channel_nb, ant_evt_t * p_ant_event, uint8_t p_message_payload[8])
+void ant_glasses_tx_evt_handle(ant_glasses_profile_t * p_profile, ant_evt_t * p_ant_event, uint8_t p_message_payload[8])
 {
+    if (p_ant_event->channel == p_profile->channel_number)
+    {
+        
         uint32_t err_code;
         switch (p_ant_event->event)
         {
             case EVENT_TX:
-                err_code = sd_ant_broadcast_message_tx(channel_nb, 8*sizeof(uint8_t), p_message_payload);
+                err_code = sd_ant_broadcast_message_tx(p_profile->channel_number, 8*sizeof(uint8_t), p_message_payload);
                 APP_ERROR_CHECK(err_code);
                 break;
 
             default:
                 break;
         }
+    }
 }
 
-static void decode_glasses_rx_message(uint8_t * p_message_payload, ant_glasses_trans *trans)
+static void decode_glasses_rx_message(ant_glasses_profile_t * p_profile, uint8_t * p_message_payload, ant_glasses_trans *trans)
 {
   float tmp;
   
@@ -86,7 +90,7 @@ void ant_glasses_rx_evt_handle(ant_glasses_profile_t * p_profile, ant_evt_t * p_
                     case MESG_BROADCAST_DATA_ID:
                     case MESG_ACKNOWLEDGED_DATA_ID:
                     case MESG_BURST_DATA_ID:
-                        decode_glasses_rx_message(p_message->ANT_MESSAGE_aucPayload, trans);
+                        decode_glasses_rx_message(p_profile, p_message->ANT_MESSAGE_aucPayload, trans);
                     break;
 
                   default:

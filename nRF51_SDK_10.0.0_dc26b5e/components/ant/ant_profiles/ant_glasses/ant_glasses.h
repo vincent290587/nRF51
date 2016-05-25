@@ -73,6 +73,6 @@ uint32_t ant_glasses_open(ant_glasses_profile_t * p_profile);
 
 void ant_glasses_rx_evt_handle(ant_glasses_profile_t * p_profile, ant_evt_t * p_ant_event, ant_glasses_trans *trans);
 
-void ant_glasses_tx_evt_handle(uint8_t channel_nb, ant_evt_t * p_ant_event, uint8_t p_message_payload[8]);
+void ant_glasses_tx_evt_handle(ant_glasses_profile_t * p_profile, ant_evt_t * p_ant_event, uint8_t p_message_payload[8]);
 
 #endif

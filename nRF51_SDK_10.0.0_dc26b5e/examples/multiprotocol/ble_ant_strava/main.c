@@ -113,7 +113,7 @@
 #define ADV_INTERVAL_FAST_PERIOD        30                                          /**< The duration of the fast advertising period (in seconds). */
 
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
-#define APP_TIMER_OP_QUEUE_SIZE         3                                           /**< Size of timer operation queues. */
+#define APP_TIMER_OP_QUEUE_SIZE         5                                           /**< Size of timer operation queues. */
 
 #define MIN_CONN_INTERVAL               MSEC_TO_UNITS(500, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.5 seconds). */
 #define MAX_CONN_INTERVAL               MSEC_TO_UNITS(1000, UNIT_1_25_MS)           /**< Maximum acceptable connection interval (1 second). */
@@ -129,6 +129,7 @@
 #define SECURITY_REQUEST_DELAY          APP_TIMER_TICKS(1500, APP_TIMER_PRESCALER)  /**< Delay after connection until security request is sent, if necessary (ticks). */
 #define PING_DELAY                      APP_TIMER_TICKS(10000, APP_TIMER_PRESCALER)
 #define ANT_DELAY                       APP_TIMER_TICKS(10000, APP_TIMER_PRESCALER)
+#define PLAY_DELAY                      APP_TIMER_TICKS(100, APP_TIMER_PRESCALER)
 
 #define SEC_PARAM_TIMEOUT               30                                           /**< Timeout for Pairing Request or Security Request (in seconds). */
 #define SEC_PARAM_BOND                  1                                           /**< Perform bonding. */
@@ -192,6 +193,7 @@ APP_TIMER_DEF(m_sec_req_timer_id);                       /**< Security request t
 APP_TIMER_DEF(m_sec_hrm);
 APP_TIMER_DEF(m_sec_cad);
 #ifdef USE_TUNES
+APP_TIMER_DEF(m_sec_play);
 APP_TIMER_DEF(m_sec_tune);
 #endif
 
@@ -223,12 +225,13 @@ static uint8_t is_cad_init = 0;
 
 #ifdef USE_TUNES
 static uint8_t isTunePlaying = 0;
+static uint8_t whichTune = 0;
 static uint32_t iTune = 0;
 static uint8_t pwm_ready = 0;
-static void play_mario(void);
+void play_mario(void * p_context);
 
-static void pwm_start(uint32_t period_us);
-static void play_tune(void);
+void pwm_start(uint32_t period_us);
+void play_tune(void);
 #endif
 
 #if (LEDS_NUMBER > 0)
@@ -255,6 +258,7 @@ void app_error_handler(uint32_t error_code, uint32_t line_num, const uint8_t *p_
   } else {
     printf("$DBG,0,%u,%u\n\r", (unsigned int)error_code, (unsigned int)line_num);
   }
+
 
 #if LEDS_NUMBER > 0
   LEDS_OFF(LEDS_MASK);
@@ -296,31 +300,40 @@ static void sec_tune(void * p_context) {
 
 uint8_t encode (uint8_t byte) {
   
+  uint32_t err_code;
+  
    switch (byte) {
      case '$':
        status_byte = 0;
-       //memset(read_byte, 0, sizeof(read_byte));
+       memset(read_byte, 0, sizeof(read_byte));
      
        break;
      case '\n':
        LOG("%s\n\r", read_byte);
-       status_byte = 0;
+       
        
 #ifdef USE_TUNES
 		   if (read_byte[0]=='T' && read_byte[1]=='U') {
 				 switch(read_byte[2]) {
 				   case '0':
-						 play_mario();
+             whichTune = 0;
+						 err_code = app_timer_start(m_sec_play, PLAY_DELAY, NULL);
 						 break;
 					 case '1':
+             whichTune = 1;
+             err_code = app_timer_start(m_sec_play, PLAY_DELAY, NULL);
 						 break;
 				 }
+         
+         status_byte = 0;
 				 return 0;
 			 }
 #endif
+       status_byte = 0;
        return 1;
        
      default:
+       
        if (status_byte < sizeof(read_byte) - 10) {
          read_byte[status_byte] = byte;
          status_byte++;
@@ -383,7 +396,7 @@ void uart_error_handle(app_uart_evt_t * p_event)
       // get data
       while(app_uart_get(&read_byte) != NRF_SUCCESS) {;}
       if (encode(read_byte)) {
-        transmit_order ();
+        //transmit_order ();
       }
       
     }
@@ -605,6 +618,9 @@ static void timers_init(void)
     APP_ERROR_CHECK(err_code);
   
 #ifdef USE_TUNES
+    err_code = app_timer_create(&m_sec_play, APP_TIMER_MODE_SINGLE_SHOT, play_mario);
+    APP_ERROR_CHECK(err_code);
+  
     err_code = app_timer_create(&m_sec_tune, APP_TIMER_MODE_SINGLE_SHOT, sec_tune);
     APP_ERROR_CHECK(err_code);
 #endif
@@ -1015,7 +1031,7 @@ void bsp_evt_handler(bsp_event_t evt)
 }
 
 #ifdef USE_TUNES
-static void pwm_start(uint32_t period_us) {
+static inline void pwm_start(uint32_t period_us) {
   
     /* 2-channel PWM, 200Hz, output on DK LED pins. */
     app_pwm_config_t pwm1_cfg = APP_PWM_DEFAULT_CONFIG_2CH(period_us, 24, 0);
@@ -1040,19 +1056,19 @@ static void pwm_start(uint32_t period_us) {
 }
 
 
-static void pwm_stop() {
+void pwm_stop() {
     app_pwm_disable(&PWM1);
     uint32_t err_code = app_pwm_uninit(&PWM1);
     APP_ERROR_CHECK(err_code);
 }
 
-static void play_mario() {
+void play_mario(void * p_context) {
    isTunePlaying = 0;
    iTune = NOTES_NB;
    play_tune ();
 }
 
-static void play_tune (void) {
+void play_tune (void) {
   
   uint32_t err_code, delay, period_us;
   
@@ -1231,6 +1247,12 @@ static void nus_data_handler(ble_nus_t * p_nus, uint8_t * p_data, uint16_t lengt
 #if LEDS_NUMBER > 0
   LEDS_INVERT(LEDS_MASK);
 #endif
+  
+  for (uint32_t i = 0; i < length; i++)
+    {
+        while(app_uart_put(p_data[i]) != NRF_SUCCESS);
+    }
+    while(app_uart_put('\n') != NRF_SUCCESS);
 
 }
 
@@ -1439,7 +1461,7 @@ int main(void)
 #endif
     
 #ifdef USE_TUNES
-    //play_mario();
+    //play_mario(0);
 #endif
 
     
