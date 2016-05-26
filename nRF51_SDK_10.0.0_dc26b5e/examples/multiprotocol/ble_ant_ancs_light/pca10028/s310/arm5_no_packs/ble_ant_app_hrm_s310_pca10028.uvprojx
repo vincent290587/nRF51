@@ -10,6 +10,7 @@
       <TargetName>nrf51422</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
+      <pCCUsed>5060183::V5.06 update 2 (build 183)::ARMCC</pCCUsed>
       <TargetOption>
         <TargetCommonOption>
           <Device>nRF51422_xxAA</Device>
@@ -84,6 +85,8 @@
             <UserProg2Name>C:\Program Files (x86)\Nordic Semiconductor\Master Control Panel\3.10.0.14\nrf\nrfutil.exe --verbose dfu genpkg @L.zip --application @L.bin --application-version 0xff --dev-revision 1 --dev-type 1 --sd-req 0xfffe</UserProg2Name>
             <UserProg1Dos16Mode>0</UserProg1Dos16Mode>
             <UserProg2Dos16Mode>0</UserProg2Dos16Mode>
+            <nStopA1X>0</nStopA1X>
+            <nStopA2X>0</nStopA2X>
           </AfterMake>
           <SelectedForBatchBuild>0</SelectedForBatchBuild>
           <SVCSIdString></SVCSIdString>
@@ -122,47 +125,6 @@
             <HexOffset>0</HexOffset>
             <Oh166RecLen>16</Oh166RecLen>
           </OPTHX>
-          <Simulator>
-            <UseSimulator>0</UseSimulator>
-            <LoadApplicationAtStartup>1</LoadApplicationAtStartup>
-            <RunToMain>1</RunToMain>
-            <RestoreBreakpoints>1</RestoreBreakpoints>
-            <RestoreWatchpoints>1</RestoreWatchpoints>
-            <RestoreMemoryDisplay>1</RestoreMemoryDisplay>
-            <RestoreFunctions>1</RestoreFunctions>
-            <RestoreToolbox>1</RestoreToolbox>
-            <LimitSpeedToRealTime>0</LimitSpeedToRealTime>
-            <RestoreSysVw>1</RestoreSysVw>
-          </Simulator>
-          <Target>
-            <UseTarget>1</UseTarget>
-            <LoadApplicationAtStartup>1</LoadApplicationAtStartup>
-            <RunToMain>1</RunToMain>
-            <RestoreBreakpoints>1</RestoreBreakpoints>
-            <RestoreWatchpoints>1</RestoreWatchpoints>
-            <RestoreMemoryDisplay>1</RestoreMemoryDisplay>
-            <RestoreFunctions>0</RestoreFunctions>
-            <RestoreToolbox>1</RestoreToolbox>
-            <RestoreTracepoints>0</RestoreTracepoints>
-            <RestoreSysVw>1</RestoreSysVw>
-          </Target>
-          <RunDebugAfterBuild>0</RunDebugAfterBuild>
-          <TargetSelection>6</TargetSelection>
-          <SimDlls>
-            <CpuDll></CpuDll>
-            <CpuDllArguments></CpuDllArguments>
-            <PeripheralDll></PeripheralDll>
-            <PeripheralDllArguments></PeripheralDllArguments>
-            <InitializationFile></InitializationFile>
-          </SimDlls>
-          <TargetDlls>
-            <CpuDll></CpuDll>
-            <CpuDllArguments></CpuDllArguments>
-            <PeripheralDll></PeripheralDll>
-            <PeripheralDllArguments></PeripheralDllArguments>
-            <InitializationFile></InitializationFile>
-            <Driver>Segger\JL2CM3.dll</Driver>
-          </TargetDlls>
         </DebugOption>
         <Utilities>
           <Flash1>
@@ -227,6 +189,7 @@
             <useUlib>1</useUlib>
             <EndSel>0</EndSel>
             <uLtcg>0</uLtcg>
+            <nSecure>0</nSecure>
             <RoSelD>3</RoSelD>
             <RwSelD>3</RwSelD>
             <CodeSel>0</CodeSel>
@@ -361,11 +324,17 @@
             <uSurpInc>0</uSurpInc>
             <uC99>1</uC99>
             <useXO>0</useXO>
+            <v6Lang>1</v6Lang>
+            <v6LangP>1</v6LangP>
+            <vShortEn>1</vShortEn>
+            <vShortWch>1</vShortWch>
+            <v6Lto>0</v6Lto>
+            <v6WtE>0</v6WtE>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>BLE_DFU_APP_SUPPORT BUTTONS_NUMBER=3 LEDS_NUMBER=0 BLE_STACK_SUPPORT_REQD ANT_STACK_SUPPORT_REQD BOARD_PCA10028 S310 NRF51 SOFTDEVICE_PRESENT SWI_DISABLE0</Define>
+              <Define>BLE_DFU_APP_SUPPORT BUTTONS_NUMBER=5 LEDS_NUMBER=0 BLE_STACK_SUPPORT_REQD ANT_STACK_SUPPORT_REQD BOARD_PCA10028 S310 NRF51 SOFTDEVICE_PRESENT SWI_DISABLE0</Define>
               <Undefine></Undefine>
-              <IncludePath>..\..\..\config;..\..\..\..\..\bsp;..\..\..\..\..\..\components\softdevice\s310\headers;..\..\..\..\..\..\components\ble\common;..\..\..\..\..\..\components\softdevice\common\softdevice_handler;..\..\..\..\..\..\components\libraries\sensorsim;..\..\..\..\..\..\components\ble\ble_services\ble_hrs;..\..\..\..\..\..\components\ble\ble_services\ble_dis;..\..\..\..\..\..\components\ble\ble_services\ble_bas;..\..\..\..\..\..\components\drivers_nrf\hal;..\..\..\..\..\..\components\ant\ant_stack_config;..\..\..\..\..\..\components\device;..\..\..\..\..\..\components\toolchain;..\..\..\..\..\..\components\libraries\util;..\..\..\..\..\..\components\libraries\button;..\..\..\..\..\..\components\drivers_nrf\gpiote;..\..\..\..\..\..\components\drivers_nrf\config;..\..\..\..\..\..\components\drivers_nrf\common;..\..\..\..\..\..\components\ble\device_manager;..\..\..\..\..\..\components\libraries\timer;..\..\..\..\..\..\components\drivers_nrf\pstorage;..\..\..\..\..\..\components\libraries\trace;..\..\..\..\..\..\components\drivers_nrf\uart;..\..\..\..\..\..\components\ble\ble_services\ble_ancs_c;..\..\..\..\..\..\components\ble\ble_db_discovery;..\..\..\..\..\..\components\ble\ble_advertising;..\..\..\..\..\..\components\libraries\scheduler;..\..\..\..\..\..\components\ant\ant_channel_config;..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm;..\..\..\..\..\..\components\ant\ant_stack_config;..\..\..\..\..\..\components\ant\ant_state_indicator;..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm\utils;..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm\pages;..\..\..\..\..\..\components\libraries\fifo;..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm\pages\logger;..\..\..\..\..\..\components\ant\ant_profiles\ant_cad;..\..\..\..\..\..\components\ant\ant_profiles\ant_glasses;C:\Keil_v5\ARM\Pack\NordicSemiconductor\RTT;..\..\..\..\..\..\components\ble\ble_services\ble_nus;..\..\..\..\..\..\components\libraries\pwm;..\..\..\..\..\..\components\drivers_nrf\timer;..\..\..\..\..\..\components\drivers_nrf\ppi;..\..\..\..\..\..\components\drivers_nrf\wdt;..\..\..\..\..\..\components\drivers_nrf\hal;..\..\..\..\..\..\components\ble\ble_services\ble_dfu;..\..\..\..\..\..\components\libraries\bootloader_dfu;..\..\..\..\..\..\components\drivers_nrf\delay;..\..\..\..\..\..\components\libraries\uart;..\..\..\..\..\..\external\segger_rtt</IncludePath>
+              <IncludePath>..\..\..\config;..\..\..\..\..\bsp;..\..\..\..\..\..\components\softdevice\s310\headers;..\..\..\..\..\..\components\ble\common;..\..\..\..\..\..\components\softdevice\common\softdevice_handler;..\..\..\..\..\..\components\libraries\sensorsim;..\..\..\..\..\..\components\ble\ble_services\ble_hrs;..\..\..\..\..\..\components\ble\ble_services\ble_dis;..\..\..\..\..\..\components\ble\ble_services\ble_bas;..\..\..\..\..\..\components\drivers_nrf\hal;..\..\..\..\..\..\components\ant9\ant_stack_config;..\..\..\..\..\..\components\device;..\..\..\..\..\..\components\toolchain;..\..\..\..\..\..\components\libraries\util;..\..\..\..\..\..\components\libraries\button;..\..\..\..\..\..\components\drivers_nrf\gpiote;..\..\..\..\..\..\components\drivers_nrf\config;..\..\..\..\..\..\components\drivers_nrf\common;..\..\..\..\..\..\components\ble\device_manager;..\..\..\..\..\..\components\libraries\timer;..\..\..\..\..\..\components\drivers_nrf\pstorage;..\..\..\..\..\..\components\libraries\trace;..\..\..\..\..\..\components\drivers_nrf\uart;..\..\..\..\..\..\components\ble\ble_services\ble_ancs_c;..\..\..\..\..\..\components\ble\ble_db_discovery;..\..\..\..\..\..\components\ble\ble_advertising;..\..\..\..\..\..\components\libraries\scheduler;..\..\..\..\..\..\components\ant9\ant_channel_config;..\..\..\..\..\..\components\ant9\ant_profiles\ant_hrm;..\..\..\..\..\..\components\ant9\ant_stack_config;..\..\..\..\..\..\components\ant9\ant_state_indicator;..\..\..\..\..\..\components\ant9\ant_profiles\ant_hrm\utils;..\..\..\..\..\..\components\ant9\ant_profiles\ant_hrm\pages;..\..\..\..\..\..\components\libraries\fifo;..\..\..\..\..\..\components\ant9\ant_profiles\ant_hrm\pages\logger;..\..\..\..\..\..\components\ant9\ant_profiles\ant_cad;..\..\..\..\..\..\components\ant9\ant_profiles\ant_glasses;C:\Keil_v5\ARM\Pack\NordicSemiconductor\RTT;..\..\..\..\..\..\components\ble\ble_services\ble_nus;..\..\..\..\..\..\components\libraries\pwm;..\..\..\..\..\..\components\drivers_nrf\timer;..\..\..\..\..\..\components\drivers_nrf\ppi;..\..\..\..\..\..\components\drivers_nrf\wdt;..\..\..\..\..\..\components\drivers_nrf\hal;..\..\..\..\..\..\components\ble\ble_services\ble_dfu;..\..\..\..\..\..\components\libraries\bootloader_dfu;..\..\..\..\..\..\components\drivers_nrf\delay;..\..\..\..\..\..\components\libraries\uart;..\..\..\..\..\..\external\segger_rtt</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -446,6 +415,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -504,6 +479,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -530,102 +511,54 @@
           <GroupName>nRF_ANT</GroupName>
           <Files>
             <File>
-              <FileName>ant_stack_config.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ant\ant_stack_config\ant_stack_config.c</FilePath>
-              <FileOption>
-                <CommonProperty>
-                  <UseCPPCompiler>0</UseCPPCompiler>
-                  <RVCTCodeConst>0</RVCTCodeConst>
-                  <RVCTZI>0</RVCTZI>
-                  <RVCTOtherData>0</RVCTOtherData>
-                  <ModuleSelection>0</ModuleSelection>
-                  <IncludeInBuild>1</IncludeInBuild>
-                  <AlwaysBuild>2</AlwaysBuild>
-                  <GenerateAssemblyFile>2</GenerateAssemblyFile>
-                  <AssembleAssemblyFile>2</AssembleAssemblyFile>
-                  <PublicsOnly>2</PublicsOnly>
-                  <StopOnExitCode>11</StopOnExitCode>
-                  <CustomArgument></CustomArgument>
-                  <IncludeLibraryModules></IncludeLibraryModules>
-                  <ComprImg>1</ComprImg>
-                </CommonProperty>
-                <FileArmAds>
-                  <Cads>
-                    <interw>2</interw>
-                    <Optim>0</Optim>
-                    <oTime>2</oTime>
-                    <SplitLS>2</SplitLS>
-                    <OneElfS>2</OneElfS>
-                    <Strict>2</Strict>
-                    <EnumInt>2</EnumInt>
-                    <PlainCh>2</PlainCh>
-                    <Ropi>2</Ropi>
-                    <Rwpi>2</Rwpi>
-                    <wLevel>0</wLevel>
-                    <uThumb>2</uThumb>
-                    <uSurpInc>2</uSurpInc>
-                    <uC99>2</uC99>
-                    <useXO>2</useXO>
-                    <VariousControls>
-                      <MiscControls></MiscControls>
-                      <Define></Define>
-                      <Undefine></Undefine>
-                      <IncludePath></IncludePath>
-                    </VariousControls>
-                  </Cads>
-                </FileArmAds>
-              </FileOption>
-            </File>
-            <File>
-              <FileName>ant_channel_config.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ant\ant_channel_config\ant_channel_config.c</FilePath>
-            </File>
-            <File>
               <FileName>ant_hrm.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm\ant_hrm.c</FilePath>
+              <FilePath>..\..\..\..\..\..\components\ant9\ant_profiles\ant_hrm\ant_hrm.c</FilePath>
             </File>
             <File>
               <FileName>ant_hrm_page_0.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm\pages\ant_hrm_page_0.c</FilePath>
+              <FilePath>..\..\..\..\..\..\components\ant9\ant_profiles\ant_hrm\pages\ant_hrm_page_0.c</FilePath>
             </File>
             <File>
               <FileName>ant_hrm_page_1.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm\pages\ant_hrm_page_1.c</FilePath>
+              <FilePath>..\..\..\..\..\..\components\ant9\ant_profiles\ant_hrm\pages\ant_hrm_page_1.c</FilePath>
             </File>
             <File>
               <FileName>ant_hrm_page_2.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm\pages\ant_hrm_page_2.c</FilePath>
+              <FilePath>..\..\..\..\..\..\components\ant9\ant_profiles\ant_hrm\pages\ant_hrm_page_2.c</FilePath>
             </File>
             <File>
               <FileName>ant_hrm_page_3.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm\pages\ant_hrm_page_3.c</FilePath>
+              <FilePath>..\..\..\..\..\..\components\ant9\ant_profiles\ant_hrm\pages\ant_hrm_page_3.c</FilePath>
             </File>
             <File>
               <FileName>ant_hrm_page_4.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm\pages\ant_hrm_page_4.c</FilePath>
-            </File>
-            <File>
-              <FileName>ant_state_indicator.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ant\ant_state_indicator\ant_state_indicator.c</FilePath>
-            </File>
-            <File>
-              <FileName>ant_cad.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ant\ant_profiles\ant_cad\ant_cad.c</FilePath>
+              <FilePath>..\..\..\..\..\..\components\ant9\ant_profiles\ant_hrm\pages\ant_hrm_page_4.c</FilePath>
             </File>
             <File>
               <FileName>ant_glasses.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ant\ant_profiles\ant_glasses\ant_glasses.c</FilePath>
+              <FilePath>..\..\..\..\..\..\components\ant9\ant_profiles\ant_glasses\ant_glasses.c</FilePath>
+            </File>
+            <File>
+              <FileName>ant_cad.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\..\components\ant9\ant_profiles\ant_cad\ant_cad.c</FilePath>
+            </File>
+            <File>
+              <FileName>ant_channel_config.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\..\components\ant9\ant_channel_config\ant_channel_config.c</FilePath>
+            </File>
+            <File>
+              <FileName>ant_stack_config.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\..\components\ant9\ant_stack_config\ant_stack_config.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -670,6 +603,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -718,6 +657,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -766,6 +711,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -814,6 +765,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -862,6 +819,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -910,6 +873,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -958,6 +927,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -1041,6 +1016,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -1089,6 +1070,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -1137,6 +1124,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -1220,6 +1213,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -1268,6 +1267,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -1316,6 +1321,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -1364,6 +1375,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -1412,6 +1429,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -1460,6 +1483,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -1508,6 +1537,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -1605,6 +1640,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -1718,6 +1759,8 @@
             <UserProg2Name></UserProg2Name>
             <UserProg1Dos16Mode>0</UserProg1Dos16Mode>
             <UserProg2Dos16Mode>0</UserProg2Dos16Mode>
+            <nStopA1X>0</nStopA1X>
+            <nStopA2X>0</nStopA2X>
           </AfterMake>
           <SelectedForBatchBuild>0</SelectedForBatchBuild>
           <SVCSIdString></SVCSIdString>
@@ -1756,47 +1799,6 @@
             <HexOffset>0</HexOffset>
             <Oh166RecLen>16</Oh166RecLen>
           </OPTHX>
-          <Simulator>
-            <UseSimulator>0</UseSimulator>
-            <LoadApplicationAtStartup>1</LoadApplicationAtStartup>
-            <RunToMain>1</RunToMain>
-            <RestoreBreakpoints>1</RestoreBreakpoints>
-            <RestoreWatchpoints>1</RestoreWatchpoints>
-            <RestoreMemoryDisplay>1</RestoreMemoryDisplay>
-            <RestoreFunctions>1</RestoreFunctions>
-            <RestoreToolbox>1</RestoreToolbox>
-            <LimitSpeedToRealTime>0</LimitSpeedToRealTime>
-            <RestoreSysVw>1</RestoreSysVw>
-          </Simulator>
-          <Target>
-            <UseTarget>1</UseTarget>
-            <LoadApplicationAtStartup>1</LoadApplicationAtStartup>
-            <RunToMain>1</RunToMain>
-            <RestoreBreakpoints>1</RestoreBreakpoints>
-            <RestoreWatchpoints>1</RestoreWatchpoints>
-            <RestoreMemoryDisplay>1</RestoreMemoryDisplay>
-            <RestoreFunctions>0</RestoreFunctions>
-            <RestoreToolbox>1</RestoreToolbox>
-            <RestoreTracepoints>0</RestoreTracepoints>
-            <RestoreSysVw>1</RestoreSysVw>
-          </Target>
-          <RunDebugAfterBuild>0</RunDebugAfterBuild>
-          <TargetSelection>6</TargetSelection>
-          <SimDlls>
-            <CpuDll></CpuDll>
-            <CpuDllArguments></CpuDllArguments>
-            <PeripheralDll></PeripheralDll>
-            <PeripheralDllArguments></PeripheralDllArguments>
-            <InitializationFile></InitializationFile>
-          </SimDlls>
-          <TargetDlls>
-            <CpuDll></CpuDll>
-            <CpuDllArguments></CpuDllArguments>
-            <PeripheralDll></PeripheralDll>
-            <PeripheralDllArguments></PeripheralDllArguments>
-            <InitializationFile></InitializationFile>
-            <Driver>Segger\JL2CM3.dll</Driver>
-          </TargetDlls>
         </DebugOption>
         <Utilities>
           <Flash1>
@@ -1861,6 +1863,7 @@
             <useUlib>1</useUlib>
             <EndSel>0</EndSel>
             <uLtcg>0</uLtcg>
+            <nSecure>0</nSecure>
             <RoSelD>3</RoSelD>
             <RwSelD>5</RwSelD>
             <CodeSel>0</CodeSel>
@@ -1995,6 +1998,12 @@
             <uSurpInc>0</uSurpInc>
             <uC99>0</uC99>
             <useXO>0</useXO>
+            <v6Lang>1</v6Lang>
+            <v6LangP>1</v6LangP>
+            <vShortEn>1</vShortEn>
+            <vShortWch>1</vShortWch>
+            <v6Lto>0</v6Lto>
+            <v6WtE>0</v6WtE>
             <VariousControls>
               <MiscControls>--c99</MiscControls>
               <Define> BLE_STACK_SUPPORT_REQD ANT_STACK_SUPPORT_REQD ANT_CONFIG_CHANNEL_USED=1&gt;ant_stack_config ANT_CONFIG_ENC_CHANNEL_USED=0&gt;ant_stack_config ANT_CONFIG_BURST_QUEUE_SIZE=128&gt;ant_stack_config</Define>
@@ -2080,6 +2089,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -2138,6 +2153,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -2164,102 +2185,54 @@
           <GroupName>nRF_ANT</GroupName>
           <Files>
             <File>
-              <FileName>ant_stack_config.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ant\ant_stack_config\ant_stack_config.c</FilePath>
-              <FileOption>
-                <CommonProperty>
-                  <UseCPPCompiler>0</UseCPPCompiler>
-                  <RVCTCodeConst>0</RVCTCodeConst>
-                  <RVCTZI>0</RVCTZI>
-                  <RVCTOtherData>0</RVCTOtherData>
-                  <ModuleSelection>0</ModuleSelection>
-                  <IncludeInBuild>0</IncludeInBuild>
-                  <AlwaysBuild>2</AlwaysBuild>
-                  <GenerateAssemblyFile>2</GenerateAssemblyFile>
-                  <AssembleAssemblyFile>2</AssembleAssemblyFile>
-                  <PublicsOnly>2</PublicsOnly>
-                  <StopOnExitCode>11</StopOnExitCode>
-                  <CustomArgument></CustomArgument>
-                  <IncludeLibraryModules></IncludeLibraryModules>
-                  <ComprImg>1</ComprImg>
-                </CommonProperty>
-                <FileArmAds>
-                  <Cads>
-                    <interw>2</interw>
-                    <Optim>0</Optim>
-                    <oTime>2</oTime>
-                    <SplitLS>2</SplitLS>
-                    <OneElfS>2</OneElfS>
-                    <Strict>2</Strict>
-                    <EnumInt>2</EnumInt>
-                    <PlainCh>2</PlainCh>
-                    <Ropi>2</Ropi>
-                    <Rwpi>2</Rwpi>
-                    <wLevel>0</wLevel>
-                    <uThumb>2</uThumb>
-                    <uSurpInc>2</uSurpInc>
-                    <uC99>2</uC99>
-                    <useXO>2</useXO>
-                    <VariousControls>
-                      <MiscControls></MiscControls>
-                      <Define></Define>
-                      <Undefine></Undefine>
-                      <IncludePath></IncludePath>
-                    </VariousControls>
-                  </Cads>
-                </FileArmAds>
-              </FileOption>
-            </File>
-            <File>
-              <FileName>ant_channel_config.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ant\ant_channel_config\ant_channel_config.c</FilePath>
-            </File>
-            <File>
               <FileName>ant_hrm.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm\ant_hrm.c</FilePath>
+              <FilePath>..\..\..\..\..\..\components\ant9\ant_profiles\ant_hrm\ant_hrm.c</FilePath>
             </File>
             <File>
               <FileName>ant_hrm_page_0.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm\pages\ant_hrm_page_0.c</FilePath>
+              <FilePath>..\..\..\..\..\..\components\ant9\ant_profiles\ant_hrm\pages\ant_hrm_page_0.c</FilePath>
             </File>
             <File>
               <FileName>ant_hrm_page_1.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm\pages\ant_hrm_page_1.c</FilePath>
+              <FilePath>..\..\..\..\..\..\components\ant9\ant_profiles\ant_hrm\pages\ant_hrm_page_1.c</FilePath>
             </File>
             <File>
               <FileName>ant_hrm_page_2.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm\pages\ant_hrm_page_2.c</FilePath>
+              <FilePath>..\..\..\..\..\..\components\ant9\ant_profiles\ant_hrm\pages\ant_hrm_page_2.c</FilePath>
             </File>
             <File>
               <FileName>ant_hrm_page_3.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm\pages\ant_hrm_page_3.c</FilePath>
+              <FilePath>..\..\..\..\..\..\components\ant9\ant_profiles\ant_hrm\pages\ant_hrm_page_3.c</FilePath>
             </File>
             <File>
               <FileName>ant_hrm_page_4.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ant\ant_profiles\ant_hrm\pages\ant_hrm_page_4.c</FilePath>
-            </File>
-            <File>
-              <FileName>ant_state_indicator.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ant\ant_state_indicator\ant_state_indicator.c</FilePath>
-            </File>
-            <File>
-              <FileName>ant_cad.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ant\ant_profiles\ant_cad\ant_cad.c</FilePath>
+              <FilePath>..\..\..\..\..\..\components\ant9\ant_profiles\ant_hrm\pages\ant_hrm_page_4.c</FilePath>
             </File>
             <File>
               <FileName>ant_glasses.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\..\..\..\..\components\ant\ant_profiles\ant_glasses\ant_glasses.c</FilePath>
+              <FilePath>..\..\..\..\..\..\components\ant9\ant_profiles\ant_glasses\ant_glasses.c</FilePath>
+            </File>
+            <File>
+              <FileName>ant_cad.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\..\components\ant9\ant_profiles\ant_cad\ant_cad.c</FilePath>
+            </File>
+            <File>
+              <FileName>ant_channel_config.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\..\components\ant9\ant_channel_config\ant_channel_config.c</FilePath>
+            </File>
+            <File>
+              <FileName>ant_stack_config.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\..\components\ant9\ant_stack_config\ant_stack_config.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -2304,6 +2277,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -2352,6 +2331,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -2400,6 +2385,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -2448,6 +2439,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -2496,6 +2493,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -2544,6 +2547,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -2592,6 +2601,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -2675,6 +2690,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -2723,6 +2744,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -2771,6 +2798,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -2854,6 +2887,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -2902,6 +2941,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -2950,6 +2995,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -2998,6 +3049,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -3046,6 +3103,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -3094,6 +3157,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -3142,6 +3211,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -3239,6 +3314,12 @@
                     <uSurpInc>2</uSurpInc>
                     <uC99>2</uC99>
                     <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>0</v6Lto>
+                    <v6WtE>0</v6WtE>
                     <VariousControls>
                       <MiscControls></MiscControls>
                       <Define></Define>
@@ -3302,6 +3383,12 @@
                 <uSurpInc>2</uSurpInc>
                 <uC99>2</uC99>
                 <useXO>2</useXO>
+                <v6Lang>0</v6Lang>
+                <v6LangP>0</v6LangP>
+                <vShortEn>2</vShortEn>
+                <vShortWch>2</vShortWch>
+                <v6Lto>0</v6Lto>
+                <v6WtE>0</v6WtE>
                 <VariousControls>
                   <MiscControls></MiscControls>
                   <Define></Define>
@@ -3365,6 +3452,12 @@
                 <uSurpInc>2</uSurpInc>
                 <uC99>2</uC99>
                 <useXO>2</useXO>
+                <v6Lang>0</v6Lang>
+                <v6LangP>0</v6LangP>
+                <vShortEn>2</vShortEn>
+                <vShortWch>2</vShortWch>
+                <v6Lto>0</v6Lto>
+                <v6WtE>0</v6WtE>
                 <VariousControls>
                   <MiscControls></MiscControls>
                   <Define></Define>
@@ -3430,7 +3523,7 @@
       </component>
     </components>
     <files>
-      <file attr="config" category="source" condition="ARM Compiler" name="Device\Source\arm\arm_startup_nrf51.s">
+      <file attr="config" category="source" condition="ARM Compiler" name="Device\Source\arm\arm_startup_nrf51.s" version="8.6.0">
         <instance index="0">RTE\Device\nRF51422_xxAA\arm_startup_nrf51.s</instance>
         <component Cclass="Device" Cgroup="Startup" Cvendor="NordicSemiconductor" Cversion="8.6.0" condition="nRF51 Series CMSIS Device"/>
         <package license="License\license.txt" name="nRF_DeviceFamilyPack" schemaVersion="1.3" url="http://developer.nordicsemi.com/nRF5_SDK/pieces/nRF_DeviceFamilyPack/" vendor="NordicSemiconductor" version="8.6.0"/>
@@ -3438,7 +3531,7 @@
           <targetInfo name="nrf51422"/>
         </targetInfos>
       </file>
-      <file attr="config" category="source" name="Device\Source\system_nrf51.c">
+      <file attr="config" category="source" name="Device\Source\system_nrf51.c" version="8.6.0">
         <instance index="0">RTE\Device\nRF51422_xxAA\system_nrf51.c</instance>
         <component Cclass="Device" Cgroup="Startup" Cvendor="NordicSemiconductor" Cversion="8.6.0" condition="nRF51 Series CMSIS Device"/>
         <package license="License\license.txt" name="nRF_DeviceFamilyPack" schemaVersion="1.3" url="http://developer.nordicsemi.com/nRF5_SDK/pieces/nRF_DeviceFamilyPack/" vendor="NordicSemiconductor" version="8.6.0"/>
@@ -3446,7 +3539,7 @@
           <targetInfo name="nrf51422"/>
         </targetInfos>
       </file>
-      <file attr="config" category="source" condition="ARM Compiler" name="Device\Source\arm\arm_startup_nrf51.s">
+      <file attr="config" category="source" condition="ARM Compiler" name="Device\Source\arm\arm_startup_nrf51.s" version="8.6.0">
         <instance index="0">RTE\Device\nRF51422_xxAC\arm_startup_nrf51.s</instance>
         <component Cclass="Device" Cgroup="Startup" Cvendor="NordicSemiconductor" Cversion="8.6.0" condition="nRF51 Series CMSIS Device"/>
         <package license="License\license.txt" name="nRF_DeviceFamilyPack" schemaVersion="1.3" url="http://developer.nordicsemi.com/nRF5_SDK/pieces/nRF_DeviceFamilyPack/" vendor="NordicSemiconductor" version="8.6.0"/>
@@ -3454,7 +3547,7 @@
           <targetInfo excluded="1" name="flash_softdevice"/>
         </targetInfos>
       </file>
-      <file attr="config" category="source" name="Device\Source\system_nrf51.c">
+      <file attr="config" category="source" name="Device\Source\system_nrf51.c" version="8.6.0">
         <instance index="0">RTE\Device\nRF51422_xxAC\system_nrf51.c</instance>
         <component Cclass="Device" Cgroup="Startup" Cvendor="NordicSemiconductor" Cversion="8.6.0" condition="nRF51 Series CMSIS Device"/>
         <package license="License\license.txt" name="nRF_DeviceFamilyPack" schemaVersion="1.3" url="http://developer.nordicsemi.com/nRF5_SDK/pieces/nRF_DeviceFamilyPack/" vendor="NordicSemiconductor" version="8.6.0"/>
