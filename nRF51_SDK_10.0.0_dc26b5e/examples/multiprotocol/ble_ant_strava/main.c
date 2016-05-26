@@ -39,6 +39,7 @@
 #include "nrf.h"
 #include "app_error.h"
 #include "ble_hci.h"
+#include "ble_hrs.h"
 
 #include "ble_gap.h"
 #include "ble_advdata.h"
@@ -51,9 +52,8 @@
 #include "device_manager.h"
 #include "app_button.h"
 #include "app_timer.h"
-#include "pstorage.h"
-#include "nrf_soc.h"
 #include "bsp.h"
+#include "pstorage.h"
 #include "softdevice_handler.h"
 #include "app_uart.h"
 #include "app_trace.h"
@@ -72,10 +72,9 @@
 
 #include "ant_stack_config.h"
 #include "ant_hrm.h"
-#include "ant_cad.h"
+#include "ant_bsc.h"
 #include "ant_glasses.h"
 #include "ant_interface.h"
-#include "ant_state_indicator.h"
 
 
 
@@ -88,19 +87,21 @@
 #define IS_SRVC_CHANGED_CHARACT_PRESENT 1
 
 #define HRM_RX_CHANNEL_NUMBER       0x00                        /**< Channel number assigned to HRM profile. */
-#define CAD_RX_CHANNEL_NUMBER       0x01
+#define BSC_RX_CHANNEL_NUMBER       0x01
 #define GLASSES_TX_CHANNEL_NUMBER   0x02
+
+#define BSC_DEVICE_TYPE             0x79
 
 #define WILDCARD_TRANSMISSION_TYPE  0x00                        /**< Wildcard transmission type. */
 #define WILDCARD_DEVICE_NUMBER      0x0000                        /**< Wildcard device number. */
 #define HRM_DEVICE_NUMBER           0x0D22                        
-#define CAD_DEVICE_NUMBER           0xB02B                      
+#define BSC_DEVICE_NUMBER           0xB02B                      
 
 #define ANTPLUS_NETWORK_NUMBER      0x00                        /**< Network number. */
 #define HRMRX_NETWORK_KEY           {0xB9, 0xA5, 0x21, 0xFB, 0xBD, 0x72, 0xC3, 0x45}    /**< The default network key used. */
 
-#define UART_TX_BUF_SIZE                128                                        /**< UART TX buffer size. */
-#define UART_RX_BUF_SIZE                1                                          /**< UART RX buffer size. */
+#define UART_TX_BUF_SIZE                512                                        /**< UART TX buffer size. */
+#define UART_RX_BUF_SIZE                32                                          /**< UART RX buffer size. */
 
 #define ATTR_DATA_SIZE                  BLE_ANCS_ATTR_DATA_MAX                      /**< Allocated size for attribute data. */
 #define NUS_SERVICE_UUID_TYPE           BLE_UUID_TYPE_VENDOR_BEGIN                  /**< UUID type for the Nordic UART Service (vendor specific). */
@@ -169,21 +170,23 @@ APP_PWM_INSTANCE(PWM1, 1);                   // Create the instance "PWM1" using
 #endif 
 
 
-
 static volatile bool ready_flag;            // A flag indicating PWM status.
 
 
 static uint16_t                  m_conn_handle = BLE_CONN_HANDLE_INVALID;  /**< Handle of the current connection. */
 
-static ble_db_discovery_t        m_ble_db_discovery;                       /**< Structure used to identify the DB Discovery module. */
+//static ble_db_discovery_t        m_ble_db_discovery;                       /**< Structure used to identify the DB Discovery module. */
 
 static dm_application_instance_t m_app_handle;                             /**< Application identifier allocated by the Device Manager. */
 static dm_handle_t               m_peer_handle;                            /**< Identifies the peer that is currently connected. */
 
-static ble_nus_t                        m_nus;                                      /**< Structure to identify the Nordic UART Service. */
+static uint8_t nus_isinit = 0;
+static ble_nus_t                 m_nus;                                      /**< Structure to identify the Nordic UART Service. */
+static ble_hrs_t                 m_hrs;                                      /**< Structure used to identify the heart rate service. */
 
-static ble_uuid_t m_adv_uuids1[] = {{BLE_UUID_BATTERY_SERVICE,            BLE_UUID_TYPE_BLE},
-                                   {BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE}}; /**< Universally unique service identifiers. */
+static ble_uuid_t m_adv_uuids1[] = {{BLE_UUID_HEART_RATE_SERVICE,         BLE_UUID_TYPE_BLE},
+                                    {BLE_UUID_BATTERY_SERVICE,            BLE_UUID_TYPE_BLE},
+                                    {BLE_UUID_DEVICE_INFORMATION_SERVICE, BLE_UUID_TYPE_BLE}}; /**< Universally unique service identifiers. */
 
 static ble_uuid_t m_adv_uuids2[] = {{BLE_UUID_NUS_SERVICE, NUS_SERVICE_UUID_TYPE}};  /**< Universally unique service identifier. */
            
@@ -204,15 +207,46 @@ static ble_dfu_t                 m_dfus;                                    /**<
 
 static uint8_t m_network_key[] = HRMRX_NETWORK_KEY;             /**< ANT PLUS network key. */
 
-/** @snippet [ANT HRM RX Instance] */
-ant_hrm_profile_t           m_ant_hrm;
-ant_cad_profile_t           m_ant_cad;
-ant_glasses_profile_t       m_ant_glasses;
-const ant_channel_config_t  ant_rx_channel_config = HRM_RX_CHANNEL_CONFIG(HRM_RX_CHANNEL_NUMBER, WILDCARD_TRANSMISSION_TYPE,
-                                                    HRM_DEVICE_NUMBER, ANTPLUS_NETWORK_NUMBER, HRM_MSG_PERIOD_4Hz);
+/** @snippet [ANT BSC RX Instance] */
+#define WHEEL_CIRCUMFERENCE         2070                                                            /**< Bike wheel circumference [mm] */
+#define BSC_EVT_TIME_FACTOR         1024                                                            /**< Time unit factor for BSC events */
+#define BSC_RPM_TIME_FACTOR         60                                                              /**< Time unit factor for RPM unit */
+#define BSC_MS_TO_KPH_NUM           36                                                              /**< Numerator of [m/s] to [kph] ratio */
+#define BSC_MS_TO_KPH_DEN           10                                                              /**< Denominator of [m/s] to [kph] ratio */
+#define BSC_MM_TO_M_FACTOR          1000                                                            /**< Unit factor [m/s] to [mm/s] */
+#define BSC_SPEED_UNIT_FACTOR       (BSC_MS_TO_KPH_DEN * BSC_MM_TO_M_FACTOR)                        /**< Speed unit factor */
+#define SPEED_COEFFICIENT           (WHEEL_CIRCUMFERENCE * BSC_EVT_TIME_FACTOR * BSC_MS_TO_KPH_NUM) /**< Coefficient for speed value calculation */
+#define CADENCE_COEFFICIENT         (BSC_EVT_TIME_FACTOR * BSC_RPM_TIME_FACTOR)                     /**< Coefficient for cadence value calculation */
 
-const ant_channel_config_t  ant_rx_channel_config2 = CAD_RX_CHANNEL_CONFIG(CAD_RX_CHANNEL_NUMBER, WILDCARD_TRANSMISSION_TYPE,
-                                                    CAD_DEVICE_NUMBER, ANTPLUS_NETWORK_NUMBER, CAD_MSG_PERIOD);
+void ant_bsc_evt_handler(ant_bsc_profile_t * p_profile, ant_bsc_evt_t event);
+BSC_DISP_CHANNEL_CONFIG_DEF(m_ant_bsc,
+                            BSC_RX_CHANNEL_NUMBER,
+                            WILDCARD_TRANSMISSION_TYPE,
+                            BSC_DEVICE_TYPE,
+                            BSC_DEVICE_NUMBER,
+                            ANTPLUS_NETWORK_NUMBER,
+                            BSC_MSG_PERIOD_4Hz);
+BSC_DISP_PROFILE_CONFIG_DEF(m_ant_bsc, ant_bsc_evt_handler);
+ant_bsc_profile_t m_ant_bsc;
+
+static int32_t accumulated_s_rev_cnt, previous_s_evt_cnt, prev_s_accumulated_rev_cnt,
+               accumulated_s_evt_time, previous_s_evt_time, prev_s_accumulated_evt_time = 0;
+
+static int32_t accumulated_c_rev_cnt, previous_c_evt_cnt, prev_c_accumulated_rev_cnt,
+               accumulated_c_evt_time, previous_c_evt_time, prev_c_accumulated_evt_time = 0;
+
+
+/** @snippet [ANT HRM RX Instance] */
+HRM_DISP_CHANNEL_CONFIG_DEF(m_ant_hrm,
+                            HRM_RX_CHANNEL_NUMBER,
+                            WILDCARD_TRANSMISSION_TYPE,
+                            HRM_DEVICE_NUMBER,
+                            ANTPLUS_NETWORK_NUMBER,
+                            HRM_MSG_PERIOD_4Hz);
+ant_hrm_profile_t           m_ant_hrm;
+
+/** @snippet [ANT GLASSES TX Instance] */
+ant_glasses_profile_t       m_ant_glasses;
 
 const ant_channel_config_t  ant_tx_channel_config  = GLASSES_TX_CHANNEL_CONFIG(GLASSES_TX_CHANNEL_NUMBER, 5,
                                                     GLASSES_DEVICE_NUMBER, ANTPLUS_NETWORK_NUMBER);
@@ -230,8 +264,8 @@ static uint32_t iTune = 0;
 static uint8_t pwm_ready = 0;
 void play_mario(void * p_context);
 
-void pwm_start(uint32_t period_us);
-void play_tune(void);
+static void pwm_start(uint32_t period_us);
+static void play_tune(void);
 #endif
 
 #if (LEDS_NUMBER > 0)
@@ -240,10 +274,11 @@ const uint8_t leds_list[LEDS_NUMBER] = LEDS_LIST;
 const uint8_t leds_list;
 #endif
 
-static uint8_t read_byte[100];
+#define RB_SIZE 100
+static uint8_t read_byte[RB_SIZE];
 static uint8_t glasses_payload[8];
-static uint16_t status_byte;
-
+static uint16_t status_byte = 0;
+static uint16_t marque_byte = 0;
 
 void app_error_handler(uint32_t error_code, uint32_t line_num, const uint8_t *p_file_name) {
   
@@ -252,13 +287,26 @@ void app_error_handler(uint32_t error_code, uint32_t line_num, const uint8_t *p_
 #if (NRF_LOG_USES_RTT==1)
   SEGGER_RTT_printf(0, "Erreur: %u ligne%u %s!!\n", (unsigned int)error_code, (unsigned int)line_num, p_file_name); 
 #endif
+	
+#ifdef DEBUG
+	sprintf((char *)read_byte, "$ERR,%u,%u\n\r", (unsigned int)error_code, (unsigned int)line_num);
+	
+	read_byte[15] = '\0';
+	read_byte[16] = '\0';
+	if (nus_isinit) {
+	uint32_t err_code = ble_nus_string_send(&m_nus, read_byte, 15);
+       if (err_code != NRF_ERROR_INVALID_STATE)
+       {
+         APP_ERROR_CHECK(err_code);
+       }
+	}
+#endif
   
   if (p_file_name) {
     printf("$DBG,1,%u,%u,%s\n\r", (unsigned int)error_code, (unsigned int)line_num, p_file_name);
   } else {
     printf("$DBG,0,%u,%u\n\r", (unsigned int)error_code, (unsigned int)line_num);
   }
-
 
 #if LEDS_NUMBER > 0
   LEDS_OFF(LEDS_MASK);
@@ -305,13 +353,24 @@ uint8_t encode (uint8_t byte) {
    switch (byte) {
      case '$':
        status_byte = 0;
-       memset(read_byte, 0, sizeof(read_byte));
+       marque_byte = 1;
+       memset(read_byte, 0, RB_SIZE);
      
        break;
-     case '\n':
+     case '\r':
+		 case '\n':
+		 case '\0':
+			 if (status_byte < 1 || marque_byte == 0) return 0;
        LOG("%s\n\r", read_byte);
-       
-       
+#ifdef DEBUG
+		   if (nus_isinit) {
+				 err_code = ble_nus_string_send(&m_nus, read_byte, status_byte);
+				 if (err_code != NRF_ERROR_INVALID_STATE)
+				 {
+					 APP_ERROR_CHECK(err_code);
+				 }     
+       }			 
+#endif			 
 #ifdef USE_TUNES
 		   if (read_byte[0]=='T' && read_byte[1]=='U') {
 				 switch(read_byte[2]) {
@@ -326,19 +385,21 @@ uint8_t encode (uint8_t byte) {
 				 }
          
          status_byte = 0;
+         marque_byte = 0;
 				 return 0;
 			 }
 #endif
+       marque_byte = 0;
        status_byte = 0;
        return 1;
        
      default:
-       
-       if (status_byte < sizeof(read_byte) - 10) {
+       if (status_byte < RB_SIZE - 10 && marque_byte == 1) {
          read_byte[status_byte] = byte;
          status_byte++;
        } else {
          status_byte = 0;
+         marque_byte = 0;
        }
        break;
    }
@@ -387,21 +448,30 @@ void transmit_order () {
 }
 
 
-void uart_error_handle(app_uart_evt_t * p_event)
+void uart_evt_handle(app_uart_evt_t * p_event)
 {
-    uint8_t read_byte = 0;
+    uint8_t uart_byte = 0;
   
     if (p_event->evt_type == APP_UART_DATA_READY)
     {
-      // get data
-      while(app_uart_get(&read_byte) != NRF_SUCCESS) {;}
-      if (encode(read_byte)) {
-        //transmit_order ();
-      }
       
+#ifdef DEBUG
+			if (nus_isinit)
+			  ble_nus_string_send(&m_nus, "Rd", 2);
+#endif
+      
+      // get data
+      while(app_uart_get(&uart_byte) != NRF_SUCCESS) {;}
+	  
+	  
+      if (encode(uart_byte)) {
+        transmit_order ();
+      }
+
     }
+    
   
-    if (0) {
+    if (1) {
       if (p_event->evt_type == APP_UART_COMMUNICATION_ERROR)
       {
         APP_ERROR_CHECK(p_event->data.error_communication);
@@ -410,6 +480,10 @@ void uart_error_handle(app_uart_evt_t * p_event)
       {
         APP_ERROR_CHECK(p_event->data.error_code);
       }
+      else if (p_event->evt_type == APP_UART_TX_EMPTY)
+      {
+        
+      }
     }
 }
 
@@ -417,7 +491,7 @@ static void hrm_connect(void * p_context)
 {
   uint32_t err_code = NRF_SUCCESS;
   
-  err_code = ant_hrm_open(&m_ant_hrm);
+  err_code = ant_hrm_disp_open(&m_ant_hrm);
   APP_ERROR_CHECK(err_code);
 }
 
@@ -425,7 +499,7 @@ static void cad_connect(void * p_context)
 {
   uint32_t err_code = NRF_SUCCESS;
   
-  err_code = ant_cad_open(&m_ant_cad);
+  err_code = ant_bsc_disp_open(&m_ant_bsc);
   APP_ERROR_CHECK(err_code);
 }
 
@@ -471,12 +545,12 @@ void ant_evt_cad (ant_evt_t * p_ant_evt)
 					{
 							case EVENT_RX:
                   if (!is_cad_init) {
-                    sd_ant_channel_id_get (CAD_RX_CHANNEL_NUMBER, 
+                    sd_ant_channel_id_get (BSC_RX_CHANNEL_NUMBER, 
                           &pusDeviceNumber, &pucDeviceType, &pucTransmitType);
                     printf("$ANCS,0,CAD 0x%x connected\n\r", pusDeviceNumber);
                     if (pusDeviceNumber) is_cad_init = 1;
                   }
-              
+                  ant_bsc_disp_evt_handler(&m_ant_bsc, p_ant_evt);
 									break;
 							case EVENT_RX_FAIL:
 									break;
@@ -511,7 +585,7 @@ void ant_evt_hrm (ant_evt_t * p_ant_evt)
                     printf("$ANCS,0,HRM 0x%x connected\n\r", pusDeviceNumber);
                     if (pusDeviceNumber) is_hrm_init = 1;
                   }
-      
+                  ant_hrm_disp_evt_handler(&m_ant_hrm, p_ant_evt);
 									break;
 							case EVENT_RX_FAIL:
 									break;
@@ -544,12 +618,10 @@ void ant_evt_dispatch(ant_evt_t * p_ant_evt)
 	  switch(p_ant_evt->channel) {
 			case HRM_RX_CHANNEL_NUMBER:
 				ant_evt_hrm (p_ant_evt);
-        ant_hrm_rx_evt_handle(&m_ant_hrm, p_ant_evt);
 				break;
       
-			case CAD_RX_CHANNEL_NUMBER:
+			case BSC_RX_CHANNEL_NUMBER:
 				ant_evt_cad (p_ant_evt);
-        ant_cad_rx_evt_handle(&m_ant_cad, p_ant_evt);
 				break;
       
       case GLASSES_TX_CHANNEL_NUMBER:
@@ -565,6 +637,203 @@ void ant_evt_dispatch(ant_evt_t * p_ant_evt)
 #endif
 }
 
+
+
+__STATIC_INLINE float calculate_speed(int32_t rev_cnt, int32_t evt_time)
+{
+    static float computed_speed   = 0;
+
+    if (rev_cnt != previous_s_evt_cnt)
+    {
+        accumulated_s_rev_cnt  += rev_cnt - previous_s_evt_cnt;
+        accumulated_s_evt_time += evt_time - previous_s_evt_time;
+
+        /* Process rollover */
+        if (previous_s_evt_cnt > rev_cnt)
+        {
+            accumulated_s_rev_cnt += UINT16_MAX + 1;
+        }
+        if (previous_s_evt_time > evt_time)
+        {
+            accumulated_s_evt_time += UINT16_MAX + 1;
+        }
+
+        previous_s_evt_cnt  = rev_cnt;
+        previous_s_evt_time = evt_time;
+
+        computed_speed   = SPEED_COEFFICIENT *
+                           (accumulated_s_rev_cnt  - prev_s_accumulated_rev_cnt) /
+                           (accumulated_s_evt_time - prev_s_accumulated_evt_time)/
+                           BSC_SPEED_UNIT_FACTOR;
+
+        prev_s_accumulated_rev_cnt  = accumulated_s_rev_cnt;
+        prev_s_accumulated_evt_time = accumulated_s_evt_time;
+    }
+
+    return (uint32_t) computed_speed;
+}
+
+static uint32_t calculate_cadence(int32_t rev_cnt, int32_t evt_time)
+{
+    static uint32_t computed_cadence = 0;
+
+    if (rev_cnt != previous_c_evt_cnt)
+    {
+        accumulated_c_rev_cnt  += rev_cnt - previous_c_evt_cnt;
+        accumulated_c_evt_time += evt_time - previous_c_evt_time;
+
+        /* Process rollover */
+        if (previous_c_evt_cnt > rev_cnt)
+        {
+            accumulated_c_rev_cnt += UINT16_MAX + 1;
+        }
+        if (previous_c_evt_time > evt_time)
+        {
+            accumulated_c_evt_time += UINT16_MAX + 1;
+        }
+
+        previous_c_evt_cnt  = rev_cnt;
+        previous_c_evt_time = evt_time;
+
+        computed_cadence = CADENCE_COEFFICIENT *
+                           (accumulated_c_rev_cnt  - prev_c_accumulated_rev_cnt) /
+                           (accumulated_c_evt_time - prev_c_accumulated_evt_time);
+
+        prev_c_accumulated_rev_cnt  = accumulated_c_rev_cnt;
+        prev_c_accumulated_evt_time = accumulated_c_evt_time;
+    }
+
+    return (uint32_t) computed_cadence;
+}
+
+
+void ant_bsc_evt_handler(ant_bsc_profile_t * p_profile, ant_bsc_evt_t event)
+{
+    unsigned int _cadence;
+	  float _speed;
+  
+  
+    switch (event)
+    {
+        case ANT_BSC_PAGE_0_UPDATED:
+            /* fall through */
+        case ANT_BSC_PAGE_1_UPDATED:
+            /* fall through */
+        case ANT_BSC_PAGE_2_UPDATED:
+            /* fall through */
+        case ANT_BSC_PAGE_3_UPDATED:
+            /* fall through */
+        case ANT_BSC_PAGE_4_UPDATED:
+            /* fall through */
+        case ANT_BSC_PAGE_5_UPDATED:
+            /* Log computed value */
+            break;
+
+        case ANT_BSC_COMB_PAGE_0_UPDATED:
+          
+            _speed = calculate_speed(p_profile->BSC_PROFILE_speed_rev_count, p_profile->BSC_PROFILE_speed_event_time);
+        
+            _cadence = calculate_cadence(p_profile->BSC_PROFILE_cadence_rev_count, p_profile->BSC_PROFILE_cadence_event_time);
+                         
+			printf("$CAD,%u,%u\n\r", (unsigned int)_cadence, (unsigned int)(_speed * 100.));
+				
+#if (NRF_LOG_USES_RTT==1)
+        log_rtt_printf(0, "Evenement BSC speed=%u cad=%u\n", _speed, _cadence);
+#endif
+            break;
+
+        default:
+            break;
+    }
+}
+
+
+/**@brief Handle received ANT+ HRM data.
+ * 
+ * @param[in]   p_profile       Pointer to the ANT+ HRM profile instance.
+ * @param[in]   event           Event related with ANT+ HRM Display profile. 
+ */
+static void ant_hrm_evt_handler(ant_hrm_profile_t * p_profile, ant_hrm_evt_t event)
+{
+	  uint32_t            err_code;
+    static uint32_t     s_previous_beat_count  = 0;    // Heart beat count from previously received page
+    uint16_t            beat_time              = p_profile->page_0.beat_time;
+    uint32_t            beat_count             = p_profile->page_0.beat_count;
+    uint32_t            computed_heart_rate    = p_profile->page_0.computed_heart_rate;
+	  uint16_t rrInterval;
+    uint16_t rrInterval_ms;
+  
+    switch (event)
+    {
+        case ANT_HRM_PAGE_0_UPDATED:
+            /* fall through */
+        case ANT_HRM_PAGE_1_UPDATED:
+            /* fall through */
+        case ANT_HRM_PAGE_2_UPDATED:
+            /* fall through */
+        case ANT_HRM_PAGE_3_UPDATED:
+            break;
+        case ANT_HRM_PAGE_4_UPDATED:
+					
+				    // Notify the received heart rate measurement
+						err_code = ble_hrs_heart_rate_measurement_send(&m_hrs, computed_heart_rate);
+						if (
+								(err_code != NRF_SUCCESS)
+								&&
+								(err_code != NRF_ERROR_INVALID_STATE)
+								&&
+								(err_code != NRF_ERROR_NO_MEM)
+								&&
+								(err_code != BLE_ERROR_GATTS_SYS_ATTR_MISSING)
+						)
+						{
+								APP_ERROR_HANDLER(err_code);
+						}
+          
+#if (NRF_LOG_USES_RTT==1)
+            log_rtt_printf(0, "Evenement HR BPM=%u\n", (unsigned int)computed_heart_rate);
+#endif
+        
+            // Ensure that there is only one beat between time intervals.
+            if ((beat_count - s_previous_beat_count) == 1)
+            {
+                uint16_t prev_beat = p_profile->page_4.prev_beat;
+							
+							  rrInterval = (beat_time - prev_beat);
+                rrInterval_ms = rrInterval * 1000. / 1024.;
+							
+							  printf("$HRM,%u,%u\n\r",
+                      (unsigned int)computed_heart_rate,
+                      (unsigned int)rrInterval_ms);
+                
+                // Subtracting the event time gives the R-R interval
+                //ble_hrs_rr_interval_add(&m_hrs, beat_time - prev_beat);
+#if (NRF_LOG_USES_RTT==1)
+                log_rtt_printf(0, "Evenement HR RR=%u\n", (unsigned int)rrInterval_ms);
+#endif
+											
+								ble_hrs_rr_interval_add(&m_hrs, rrInterval_ms);
+								if ((err_code != NRF_SUCCESS)
+										&&
+										(err_code != NRF_ERROR_INVALID_STATE)
+										&&
+										(err_code != NRF_ERROR_NO_MEM)
+										&&
+										(err_code != BLE_ERROR_GATTS_SYS_ATTR_MISSING))
+								{
+										APP_ERROR_HANDLER(err_code);
+								}
+            }
+            
+            s_previous_beat_count = beat_count;
+            break;
+
+        default:
+            break;
+    }
+
+
+}
 
 
 /**@brief Function for handling the security request timer time-out.
@@ -707,8 +976,6 @@ static void reset_prepare(void)
         // Disconnect from peer.
         err_code = sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
         APP_ERROR_CHECK(err_code);
-        //err_code = bsp_indication_set(BSP_INDICATE_IDLE);
-        //APP_ERROR_CHECK(err_code);
     }
     else
     {
@@ -770,6 +1037,26 @@ static void conn_params_error_handler(uint32_t nrf_error)
     APP_ERROR_HANDLER(nrf_error);
 }
 
+/**@brief Function for handling the Connection Parameters Module.
+ *
+ * @details This function will be called for all events in the Connection Parameters Module which
+ *          are passed to the application.
+ *          @note All this function does is to disconnect. This could have been done by simply
+ *                setting the disconnect_on_fail config parameter, but instead we use the event
+ *                handler mechanism to demonstrate its use.
+ *
+ * @param[in] p_evt  Event received from the Connection Parameters Module.
+ */
+static void on_conn_params_evt(ble_conn_params_evt_t * p_evt)
+{
+    uint32_t err_code;
+
+    if (p_evt->evt_type == BLE_CONN_PARAMS_EVT_FAILED)
+    {
+        err_code = sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_CONN_INTERVAL_UNACCEPTABLE);
+        APP_ERROR_CHECK(err_code);
+    }
+}
 
 /**@brief Function for initializing the Connection Parameters module.
  */
@@ -784,9 +1071,9 @@ static void conn_params_init(void)
     cp_init.first_conn_params_update_delay = FIRST_CONN_PARAMS_UPDATE_DELAY;
     cp_init.next_conn_params_update_delay  = NEXT_CONN_PARAMS_UPDATE_DELAY;
     cp_init.max_conn_params_update_count   = MAX_CONN_PARAMS_UPDATE_COUNT;
-    cp_init.start_on_notify_cccd_handle    = BLE_GATT_HANDLE_INVALID;
-    cp_init.disconnect_on_fail             = true;
-    cp_init.evt_handler                    = NULL;
+    cp_init.start_on_notify_cccd_handle    = m_hrs.hrm_handles.cccd_handle;
+    cp_init.disconnect_on_fail             = false;
+    cp_init.evt_handler                    = on_conn_params_evt;
     cp_init.error_handler                  = conn_params_error_handler;
 
     err_code = ble_conn_params_init(&cp_init);
@@ -819,9 +1106,8 @@ static uint32_t device_manager_evt_handler(dm_handle_t const * p_handle,
             app_context_load(p_handle);
 #endif
             
-            err_code = ble_db_discovery_start(&m_ble_db_discovery,
-                                              p_evt->event_param.p_gap_param->conn_handle);
-            APP_ERROR_CHECK(err_code);
+            //err_code = ble_db_discovery_start(&m_ble_db_discovery, p_evt->event_param.p_gap_param->conn_handle);
+            //APP_ERROR_CHECK(err_code);
             break; 
 
         default:
@@ -840,7 +1126,7 @@ static uint32_t device_manager_evt_handler(dm_handle_t const * p_handle,
 static void device_manager_init(bool p_erase_bonds)
 {
     uint32_t                err_code;
-    dm_init_param_t         init_data;
+    dm_init_param_t         init_data = {.clear_persistent_data = true};
     dm_application_param_t  register_param;
     
     // Initialize persistent storage module.
@@ -935,7 +1221,7 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
 static void on_ble_evt(ble_evt_t * p_ble_evt)
 {
     uint32_t err_code = NRF_SUCCESS;
-    uint8_t var = 20;
+    
 
     switch (p_ble_evt->header.evt_id)
     {
@@ -951,7 +1237,7 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
 				
 #if LEDS_NUMBER > 0
             LEDS_OFF(BSP_LED_1_MASK);
-            
+            uint8_t var = 20;
             LEDS_OFF(LEDS_MASK);
             while (var--) {
               nrf_delay_ms(200);
@@ -985,7 +1271,7 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
  */
 void bsp_evt_handler(bsp_event_t evt)
 {
-    uint32_t err_code;
+    uint32_t err_code = NRF_SUCCESS;
   
 #if (NRF_LOG_USES_RTT==1)
   SEGGER_RTT_printf(0, "Event: %u\n", evt); 
@@ -996,33 +1282,20 @@ void bsp_evt_handler(bsp_event_t evt)
     {
         case BSP_EVENT_KEY_0:
             printf("$BTN,0\n\r");
-        #ifdef DEBUG
-            err_code = ble_nus_string_send(&m_nus, "$BTN,0", 6);
-            if (err_code != NRF_ERROR_INVALID_STATE)
-            {
-              APP_ERROR_CHECK(err_code);
-            }
-            #endif
             break;
         case BSP_EVENT_KEY_1:
             printf("$BTN,1\n\r");
-        #ifdef DEBUG
-            err_code = ble_nus_string_send(&m_nus, "$BTN,1", 6);
-            if (err_code != NRF_ERROR_INVALID_STATE)
-            {
-              APP_ERROR_CHECK(err_code);
-            }
-            #endif
             break;
         case BSP_EVENT_KEY_2:
             printf("$BTN,2\n\r");
-        #ifdef DEBUG
-            err_code = ble_nus_string_send(&m_nus, "$BTN,2", 6);
-            if (err_code != NRF_ERROR_INVALID_STATE)
-            {
-              APP_ERROR_CHECK(err_code);
-            }
-            #endif
+            break;
+        case BSP_EVENT_KEY_3:
+            whichTune = 0;
+						err_code = app_timer_start(m_sec_play, PLAY_DELAY, NULL);
+            break;
+        case BSP_EVENT_KEY_4:
+            whichTune = 0;
+						err_code = app_timer_start(m_sec_play, PLAY_DELAY, NULL);
             break;
         default:
             return; // no implementation needed
@@ -1031,7 +1304,7 @@ void bsp_evt_handler(bsp_event_t evt)
 }
 
 #ifdef USE_TUNES
-static inline void pwm_start(uint32_t period_us) {
+static void pwm_start(uint32_t period_us) {
   
     /* 2-channel PWM, 200Hz, output on DK LED pins. */
     app_pwm_config_t pwm1_cfg = APP_PWM_DEFAULT_CONFIG_2CH(period_us, 24, 0);
@@ -1056,19 +1329,29 @@ static inline void pwm_start(uint32_t period_us) {
 }
 
 
-void pwm_stop() {
+static void pwm_stop() {
     app_pwm_disable(&PWM1);
     uint32_t err_code = app_pwm_uninit(&PWM1);
     APP_ERROR_CHECK(err_code);
 }
 
 void play_mario(void * p_context) {
-   isTunePlaying = 0;
+   
    iTune = NOTES_NB;
+#ifdef DEBUG
+	 ble_nus_string_send(&m_nus, "Musique !", 9);
+#endif
+	 if (isTunePlaying) {
+		 isTunePlaying = 0;
+		 pwm_stop();
+		 nrf_delay_ms(10);
+	 }
+#ifndef DEBUG
    play_tune ();
+#endif
 }
 
-void play_tune (void) {
+static void play_tune (void) {
   
   uint32_t err_code, delay, period_us;
   
@@ -1115,16 +1398,16 @@ void play_tune (void) {
 static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
 {
     dm_ble_evt_handler(p_ble_evt);
-    ble_db_discovery_on_ble_evt(&m_ble_db_discovery, p_ble_evt);
+    //ble_db_discovery_on_ble_evt(&m_ble_db_discovery, p_ble_evt);
     ble_conn_params_on_ble_evt(p_ble_evt);
     
 #ifdef BLE_DFU_APP_SUPPORT
     /** @snippet [Propagating BLE Stack events to DFU Service] */
     ble_dfu_on_ble_evt(&m_dfus, p_ble_evt);
-    /** @snippet [Propagating BLE Stack events to DFU Service] */
 #endif // BLE_DFU_APP_SUPPORT
   
     ble_nus_on_ble_evt(&m_nus, p_ble_evt);
+	  ble_hrs_on_ble_evt(&m_hrs, p_ble_evt);
     on_ble_evt(p_ble_evt);
     ble_advertising_on_ble_evt(p_ble_evt);
 }
@@ -1156,7 +1439,7 @@ static void ble_stack_init(void)
     ble_enable_params_t ble_enable_params;
     memset(&ble_enable_params, 0, sizeof(ble_enable_params));
 
-    //ble_enable_params.gatts_enable_params.attr_tab_size   = BLE_GATTS_ATTR_TAB_SIZE_DEFAULT;
+    ble_enable_params.gatts_enable_params.attr_tab_size   = BLE_GATTS_ATTR_TAB_SIZE_DEFAULT;
 
     ble_enable_params.gatts_enable_params.service_changed = IS_SRVC_CHANGED_CHARACT_PRESENT;
 
@@ -1187,7 +1470,7 @@ static void ant_stack_init(void)
     err_code = softdevice_ant_evt_handler_set(ant_evt_dispatch);
     APP_ERROR_CHECK(err_code);
 
-    // TODO check this
+    //
     err_code = ant_stack_static_config();
     APP_ERROR_CHECK(err_code);
 
@@ -1206,18 +1489,21 @@ static void ant_profile_setup(void)
     uint32_t err_code;
         
     // HRM
-    err_code = ant_hrm_init(&m_ant_hrm, &ant_rx_channel_config, NULL);
+    err_code = ant_hrm_disp_init(&m_ant_hrm,
+                                 HRM_DISP_CHANNEL_CONFIG(m_ant_hrm),
+                                 ant_hrm_evt_handler);
     APP_ERROR_CHECK(err_code);
 
-    err_code = ant_hrm_open(&m_ant_hrm);
+    err_code = ant_hrm_disp_open(&m_ant_hrm);
     APP_ERROR_CHECK(err_code);
 
     
     // CAD
-    err_code = ant_cad_init(&m_ant_cad, &ant_rx_channel_config2);
-    APP_ERROR_CHECK(err_code);
+    err_code = ant_bsc_disp_init(&m_ant_bsc,
+                                 BSC_DISP_CHANNEL_CONFIG(m_ant_bsc),
+                                 BSC_DISP_PROFILE_CONFIG(m_ant_bsc));
 
-    err_code = ant_cad_open(&m_ant_cad);
+    err_code = ant_bsc_disp_open(&m_ant_bsc);
     APP_ERROR_CHECK(err_code);
   
   
@@ -1250,8 +1536,10 @@ static void nus_data_handler(ble_nus_t * p_nus, uint8_t * p_data, uint16_t lengt
   
   for (uint32_t i = 0; i < length; i++)
     {
-        while(app_uart_put(p_data[i]) != NRF_SUCCESS);
+      encode (p_data[i]);
+			while(app_uart_put(p_data[i]) != NRF_SUCCESS);
     }
+		encode ('\n');
     while(app_uart_put('\n') != NRF_SUCCESS);
 
 }
@@ -1262,6 +1550,28 @@ static void service_init(void)
 {
     uint32_t          err_code;
     ble_nus_init_t nus_init;
+	  ble_hrs_init_t hrs_init;
+	  uint8_t        body_sensor_location;
+	
+	  // Initialize Heart Rate Service.
+    body_sensor_location = BLE_HRS_BODY_SENSOR_LOCATION_CHEST;
+	
+	  memset(&hrs_init, 0, sizeof(hrs_init));
+
+    hrs_init.evt_handler                 = NULL;
+    hrs_init.is_sensor_contact_supported = true;
+    hrs_init.p_body_sensor_location      = &body_sensor_location;
+
+    // Here the sec level for the Heart Rate Service can be changed/increased.
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&hrs_init.hrs_hrm_attr_md.cccd_write_perm);
+    BLE_GAP_CONN_SEC_MODE_SET_NO_ACCESS(&hrs_init.hrs_hrm_attr_md.read_perm);
+    BLE_GAP_CONN_SEC_MODE_SET_NO_ACCESS(&hrs_init.hrs_hrm_attr_md.write_perm);
+
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&hrs_init.hrs_bsl_attr_md.read_perm);
+    BLE_GAP_CONN_SEC_MODE_SET_NO_ACCESS(&hrs_init.hrs_bsl_attr_md.write_perm);
+
+    err_code = ble_hrs_init(&m_hrs, &hrs_init);
+    APP_ERROR_CHECK(err_code);
     
     memset(&nus_init, 0, sizeof(nus_init));
 
@@ -1348,7 +1658,7 @@ static void uart_init(void)
     APP_UART_FIFO_INIT(&comm_params,
                        UART_RX_BUF_SIZE,
                        UART_TX_BUF_SIZE,
-                       uart_error_handle,
+                       uart_evt_handle,
                        APP_IRQ_PRIORITY_LOW,
                        err_code);
     APP_ERROR_CHECK(err_code);
@@ -1386,8 +1696,8 @@ static void scheduler_init(void)
  */
 static void db_discovery_init(void)
 {
-    uint32_t err_code = ble_db_discovery_init();
-    APP_ERROR_CHECK(err_code);
+    //uint32_t err_code = ble_db_discovery_init();
+    //APP_ERROR_CHECK(err_code);
 }
 
 /**@brief Function for the Power manager.
@@ -1460,11 +1770,8 @@ int main(void)
     APP_ERROR_CHECK(err_code);
 #endif
     
-#ifdef USE_TUNES
-    //play_mario(0);
-#endif
+		nus_isinit = 1;
 
-    
 #if LEDS_NUMBER > 0
     LEDS_OFF(LEDS_MASK);
 #endif
