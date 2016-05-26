@@ -62,17 +62,17 @@ $(abspath ../../../../../../components/drivers_nrf/pstorage/pstorage.c) \
 $(abspath ../../../../../../components/drivers_nrf/wdt/nrf_drv_wdt.c) \
 $(abspath ../../../../../../components/drivers_nrf/ppi/nrf_drv_ppi.c) \
 $(abspath ../../../../../../components/drivers_nrf/timer/nrf_drv_timer.c) \
-$(abspath ../../../../../../components/ant/ant_stack_config/ant_stack_config.c) \
-$(abspath ../../../../../../components/ant/ant_state_indicator/ant_state_indicator.c) \
-$(abspath ../../../../../../components/ant/ant_profiles/ant_glasses/ant_glasses.c) \
-$(abspath ../../../../../../components/ant/ant_profiles/ant_cad/ant_cad.c) \
-$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/ant_hrm.c) \
-$(abspath ../../../../../../components/ant/ant_channel_config/ant_channel_config.c) \
-$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/pages/ant_hrm_page_0.c) \
-$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/pages/ant_hrm_page_1.c) \
-$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/pages/ant_hrm_page_2.c) \
-$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/pages/ant_hrm_page_3.c) \
-$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/pages/ant_hrm_page_4.c) \
+$(abspath ../../../../../../components/ant9/ant_stack_config/ant_stack_config.c) \
+$(abspath ../../../../../../components/ant9/ant_state_indicator/ant_state_indicator.c) \
+$(abspath ../../../../../../components/ant9/ant_profiles/ant_glasses/ant_glasses.c) \
+$(abspath ../../../../../../components/ant9/ant_profiles/ant_cad/ant_cad.c) \
+$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm/ant_hrm.c) \
+$(abspath ../../../../../../components/ant9/ant_channel_config/ant_channel_config.c) \
+$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm/pages/ant_hrm_page_0.c) \
+$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm/pages/ant_hrm_page_1.c) \
+$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm/pages/ant_hrm_page_2.c) \
+$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm/pages/ant_hrm_page_3.c) \
+$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm/pages/ant_hrm_page_4.c) \
 $(abspath ../../../../../bsp/bsp.c) \
 $(abspath ../../../../../bsp/bsp_btn_ble.c) \
 $(abspath ../../../main.c) \
@@ -87,6 +87,8 @@ $(abspath ../../../../../../components/ble/common/ble_srv_common.c) \
 $(abspath ../../../../../../components/ble/device_manager/device_manager_peripheral.c) \
 $(abspath ../../../../../../components/toolchain/system_nrf51.c) \
 $(abspath ../../../../../../components/softdevice/common/softdevice_handler/softdevice_handler.c) \
+$(abspath ../../../../../../external/segger_rtt/SEGGER_RTT_printf.c) \
+$(abspath ../../../../../../external/segger_rtt/SEGGER_RTT.c) \
 
 #assembly files common to all targets
 ASM_SOURCE_FILES  = $(abspath ../../../../../../components/toolchain/gcc/gcc_startup_nrf51.s)
@@ -121,15 +123,17 @@ INC_PATHS += -I$(abspath ../../../../../../components/ble/ble_services/ble_dis)
 INC_PATHS += -I$(abspath ../../../../../../components/ble/ble_services/ble_ancs_c)
 INC_PATHS += -I$(abspath ../../../../../../components/device)
 INC_PATHS += -I$(abspath ../../../../../../components/ble/ble_db_discovery)
-INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_stack_config)
-INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_state_indicator)
-INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm)
-INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/utils)
-INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_channel_config)
-INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_profiles/ant_glasses)
-INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_profiles/ant_cad)
-INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/pages)
-INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/pages/logger)
+INC_PATHS += -I$(abspath ../../../../../../components/ant9/ant_stack_config)
+INC_PATHS += -I$(abspath ../../../../../../components/ant9/ant_state_indicator)
+INC_PATHS += -I$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm)
+INC_PATHS += -I$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm/utils)
+INC_PATHS += -I$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm/pages)
+INC_PATHS += -I$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm/pages/logger)
+INC_PATHS += -I$(abspath ../../../../../../components/ant9/ant_channel_config)
+INC_PATHS += -I$(abspath ../../../../../../components/ant9/ant_profiles/ant_glasses)
+INC_PATHS += -I$(abspath ../../../../../../components/ant9/ant_profiles/ant_cad)
+INC_PATHS += -I$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm/pages)
+INC_PATHS += -I$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm/pages/logger)
 INC_PATHS += -I$(abspath ../../../../../../components/drivers_nrf/gpiote)
 INC_PATHS += -I$(abspath ../../../../../../components/drivers_nrf/hal)
 INC_PATHS += -I$(abspath ../../../../../../components/toolchain/gcc)
@@ -138,6 +142,8 @@ INC_PATHS += -I$(abspath ../../../../../../components/drivers_nrf/common)
 INC_PATHS += -I$(abspath ../../../../../../components/ble/ble_advertising)
 INC_PATHS += -I$(abspath ../../../../../../components/ble/ble_services/ble_bas)
 INC_PATHS += -I$(abspath ../../../../../../components/softdevice/common/softdevice_handler)
+INC_PATHS += -I$(abspath ../../../../../../external/segger_rtt)
+
 
 OBJECT_DIRECTORY = _build
 LISTING_DIRECTORY = $(OBJECT_DIRECTORY)
@@ -150,17 +156,17 @@ BUILD_DIRECTORIES := $(sort $(OBJECT_DIRECTORY) $(OUTPUT_BINARY_DIRECTORY) $(LIS
 CFLAGS  = -DSWI_DISABLE0
 CFLAGS += -DBOARD_PCA10028
 CFLAGS += -DBUTTONS_NUMBER=3 -DLEDS_NUMBER=0
-CFLAGS += -DBSP_MAIN
+#CFLAGS += -DNRF_LOG_USES_RTT
 CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -DNRF51
 CFLAGS += -DANT_STACK_SUPPORT_REQD
 CFLAGS += -DBLE_STACK_SUPPORT_REQD
 CFLAGS += -DBLE_DFU_APP_SUPPORT
-#CFLAGS += -DUSE_TUNES
+CFLAGS += -DUSE_TUNES
 CFLAGS += -DS310
 CFLAGS += -mcpu=cortex-m0
 CFLAGS += -mthumb -mabi=aapcs --std=gnu99
-CFLAGS += -Wall -Os
+CFLAGS += -Wall -O2
 CFLAGS += -mfloat-abi=soft
 # keep every function in separate section. This will allow linker to dump unused functions
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
@@ -171,21 +177,22 @@ LDFLAGS += -Xlinker -Map=$(LISTING_DIRECTORY)/$(OUTPUT_FILENAME).map
 LDFLAGS += -mthumb -mabi=aapcs -L $(TEMPLATE_PATH) -T$(LINKER_SCRIPT)
 LDFLAGS += -mcpu=cortex-m0
 # let linker to dump unused sections
-LDFLAGS += -Wl,--gc-sections -ffunction-sections -fdata-sections -Os
+LDFLAGS += -Wl,--gc-sections -ffunction-sections -fdata-sections -O2
 # use newlib in nano version
 LDFLAGS += --specs=nano.specs -lc -lnosys
 
 # Assembler flags
-ASMFLAGS += -x assembler-with-cpp -D__HEAP_SIZE=128 -D__STACK_SIZE=128
+ASMFLAGS += -x assembler-with-cpp
 ASMFLAGS += -DSWI_DISABLE0
 ASMFLAGS += -DBOARD_PCA10028
 ASMFLAGS += -DSOFTDEVICE_PRESENT
+ASMFLAGS += -DBLE_DFU_APP_SUPPORT 
 ASMFLAGS += -DNRF51
 ASMFLAGS += -DANT_STACK_SUPPORT_REQD
 ASMFLAGS += -DBLE_STACK_SUPPORT_REQD
 ASMFLAGS += -DS310
 #default target - first one defined
-default: nrf51422_xxac
+default: nrf51422_xxaa
 
 xxaa: nrf51422_xxaa
 
@@ -203,7 +210,7 @@ cll: clean
 #target for printing all targets
 help:
 	@echo following targets are available:
-	@echo 	nrf51422_xxac
+	@echo 	nrf51422_xxaa nrf51422_xxac
 	@echo 	flash_softdevice
 
 
@@ -220,7 +227,7 @@ vpath %.s $(ASM_PATHS)
 
 OBJECTS = $(C_OBJECTS) $(ASM_OBJECTS)
 
-nrf51422_xxaa: OUTPUT_FILENAME := nrf51422_xxax
+nrf51422_xxaa: OUTPUT_FILENAME := nrf51422_ancs
 nrf51422_xxaa: LINKER_SCRIPT=ble_strava_gcc_nrf51xxaa.ld
 nrf51422_xxaa: $(BUILD_DIRECTORIES) $(OBJECTS)
 	@echo Linking target: $(OUTPUT_FILENAME).out

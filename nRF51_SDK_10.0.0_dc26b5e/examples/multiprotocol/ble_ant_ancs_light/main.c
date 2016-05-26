@@ -30,6 +30,10 @@
 #include <string.h>
 #include <stdio.h>
 
+#ifdef NRF_LOG_USES_RTT
+#include "SEGGER_RTT.h"
+#endif
+
 #include "ble_ancs_c.h"
 #include "ble_db_discovery.h"
 #include "nordic_common.h"
@@ -43,7 +47,7 @@
 #include "nrf_gpio.h"
 #include "ble_srv_common.h"
 #include "ble_conn_params.h"
-#include "nrf51_bitfields.h"
+//#include "nrf51_bitfields.h"
 #include "device_manager.h"
 #include "app_button.h"
 #include "app_timer.h"
@@ -95,12 +99,10 @@
 #define ANTPLUS_NETWORK_NUMBER      0x00                        /**< Network number. */
 #define HRMRX_NETWORK_KEY           {0xB9, 0xA5, 0x21, 0xFB, 0xBD, 0x72, 0xC3, 0x45}    /**< The default network key used. */
 
-#define UART_TX_BUF_SIZE                1024                                        /**< UART TX buffer size. */
+#define UART_TX_BUF_SIZE                128                                        /**< UART TX buffer size. */
 #define UART_RX_BUF_SIZE                1                                          /**< UART RX buffer size. */
 
 #define ATTR_DATA_SIZE                  BLE_ANCS_ATTR_DATA_MAX                      /**< Allocated size for attribute data. */
-
-#define DISPLAY_MESSAGE_BUTTON_ID       1                                           /**< Button used to request notification attributes. */
 
 #define DEVICE_NAME                     "ANCS"                                      /**< Name of the device. Will be included in the advertising data. */
 #define APP_ADV_FAST_INTERVAL           40                                          /**< The advertising interval (in units of 0.625 ms). The default value corresponds to 25 ms. */
@@ -110,7 +112,7 @@
 #define ADV_INTERVAL_FAST_PERIOD        30                                          /**< The duration of the fast advertising period (in seconds). */
 
 #define APP_TIMER_PRESCALER             0                                           /**< Value of the RTC1 PRESCALER register. */
-#define APP_TIMER_OP_QUEUE_SIZE         3                                           /**< Size of timer operation queues. */
+#define APP_TIMER_OP_QUEUE_SIZE         4                                           /**< Size of timer operation queues. */
 
 #define MIN_CONN_INTERVAL               MSEC_TO_UNITS(500, UNIT_1_25_MS)            /**< Minimum acceptable connection interval (0.5 seconds). */
 #define MAX_CONN_INTERVAL               MSEC_TO_UNITS(1000, UNIT_1_25_MS)           /**< Maximum acceptable connection interval (1 second). */
@@ -138,7 +140,7 @@
 
 #define SCHED_MAX_EVENT_DATA_SIZE       MAX(APP_TIMER_SCHED_EVT_SIZE, \
                                             BLE_STACK_HANDLER_SCHED_EVT_SIZE) /**< Maximum size of scheduler events. */
-#define SCHED_QUEUE_SIZE                10                                    /**< Maximum number of events in the scheduler queue. */
+#define SCHED_QUEUE_SIZE                25                                    /**< Maximum number of events in the scheduler queue. */
 
 #ifdef BLE_DFU_APP_SUPPORT
 #define DFU_REV_MAJOR                    0x00                                       /** DFU Major revision number to be exposed. */
@@ -184,7 +186,7 @@ APP_TIMER_DEF(m_sec_tune);
 #endif
 
 #ifdef BLE_DFU_APP_SUPPORT    
-static ble_dfu_t                         m_dfus;                                    /**< Structure used to identify the DFU service. */
+static ble_dfu_t                 m_dfus;                                    /**< Structure used to identify the DFU service. */
 #endif // BLE_DFU_APP_SUPPORT  
 
 static ble_ancs_c_evt_notif_t m_notification_latest;                       /**< Local copy to keep track of the newest arriving notifications. */
@@ -248,6 +250,10 @@ void app_error_handler(uint32_t error_code, uint32_t line_num, const uint8_t *p_
   
   if (error_code == NRF_SUCCESS) return;
   
+#ifdef NRF_LOG_USES_RTT
+  SEGGER_RTT_printf(0, "Erreur: %x ligne%u %s!!\n", error_code, line_num, p_file_name); 
+#endif
+  
   if (p_file_name) {
     printf("$DBG,1,%ud,%ud,%s\n\r", error_code, line_num, p_file_name);
   } else {
@@ -257,8 +263,8 @@ void app_error_handler(uint32_t error_code, uint32_t line_num, const uint8_t *p_
 #if LEDS_NUMBER > 0
   LEDS_OFF(LEDS_MASK);
   while (0) {
-    LEDS_INVERT(LEDS_MASK);
     nrf_delay_ms(300);
+    LEDS_INVERT(LEDS_MASK);
   }
 #endif
 }
@@ -286,9 +292,9 @@ static void pwm_ready_callback(uint32_t pwm_id)    // PWM callback function
 }
 
 
-// on fait un ping sur iOS pour eviter la deconnexion
+
 static void sec_tune(void * p_context) {
-   //play_tune();
+   play_tune();
 }
 #endif
 
@@ -297,7 +303,7 @@ uint8_t encode (uint8_t byte) {
    switch (byte) {
      case '$':
        status_byte = 0;
-       //memset(read_byte, 0, sizeof(read_byte));
+       memset(read_byte, 0, sizeof(read_byte));
      
        break;
      case '\n':
@@ -308,7 +314,8 @@ uint8_t encode (uint8_t byte) {
 		   if (read_byte[0]=='T' && read_byte[1]=='U') {
 				 switch(read_byte[2]) {
 				   case '0':
-						 play_mario();
+             printf("chanson\n\r");
+						 //play_mario();
 						 break;
 					 case '1':
 						 break;
@@ -743,8 +750,8 @@ static void advertising_stop(void)
     err_code = sd_ble_gap_adv_stop();
     APP_ERROR_CHECK(err_code);
 
-    err_code = bsp_indication_set(BSP_INDICATE_IDLE);
-    APP_ERROR_CHECK(err_code);
+    //err_code = bsp_indication_set(BSP_INDICATE_IDLE);
+    //APP_ERROR_CHECK(err_code);
 }
 
 
@@ -814,8 +821,8 @@ static void reset_prepare(void)
         // Disconnect from peer.
         err_code = sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
         APP_ERROR_CHECK(err_code);
-        err_code = bsp_indication_set(BSP_INDICATE_IDLE);
-        APP_ERROR_CHECK(err_code);
+        //err_code = bsp_indication_set(BSP_INDICATE_IDLE);
+        //APP_ERROR_CHECK(err_code);
     }
     else
     {
@@ -996,23 +1003,23 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
     switch (ble_adv_evt)
     {
         case BLE_ADV_EVT_DIRECTED:
-            err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING_DIRECTED);
-            APP_ERROR_CHECK(err_code);
+            //err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING_DIRECTED);
+            //APP_ERROR_CHECK(err_code);
             break;
 
         case BLE_ADV_EVT_FAST:
-            err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING);
-            APP_ERROR_CHECK(err_code);
+            //err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING);
+            //APP_ERROR_CHECK(err_code);
             break;
 
         case BLE_ADV_EVT_FAST_WHITELIST:
-            err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING_WHITELIST);
-            APP_ERROR_CHECK(err_code);
+            //err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING_WHITELIST);
+            //APP_ERROR_CHECK(err_code);
             break;
 
         case BLE_ADV_EVT_SLOW:
-            err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING_SLOW);
-            APP_ERROR_CHECK(err_code);
+            //err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING_SLOW);
+            //APP_ERROR_CHECK(err_code);
             break;
 
         case BLE_ADV_EVT_IDLE:
@@ -1058,11 +1065,8 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
         case BLE_GAP_EVT_CONNECTED:
             printf("$ANCS,0,ANCS connected\n\r");
             //SEGGER_RTT_WriteString(0, "Connected\n");
-            err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
-            APP_ERROR_CHECK(err_code);
-
-				    // BSP_LED_0_MASK  BSP_LED_1_MASK BSP_LED_2_MASK
-            LEDS_OFF(BSP_LED_1_MASK);
+            //err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
+            //APP_ERROR_CHECK(err_code);
 
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
             break;
@@ -1072,10 +1076,8 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
             //SEGGER_RTT_WriteString(0, "Disconnected\n");
             m_conn_handle = BLE_CONN_HANDLE_INVALID;
 				
-				    // BSP_LED_0_MASK  BSP_LED_1_MASK BSP_LED_2_MASK
-            LEDS_OFF(BSP_LED_1_MASK);
-
 #if LEDS_NUMBER > 0
+            LEDS_OFF(BSP_LED_1_MASK);
             
             LEDS_OFF(LEDS_MASK);
             while (var--) {
@@ -1105,44 +1107,40 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
 
 
 
-/**@brief Function for handling events from the BSP module.
- *
- * @param[in] event  Event generated by button press.
+
+/**@brief Function for handling bsp events.
  */
-static void bsp_event_handler(bsp_event_t event)
+void bsp_evt_handler(bsp_event_t evt)
 {
-    
-    switch (event)
+    uint32_t err_code, actual_state=0;
+  
+#ifdef NRF_LOG_USES_RTT
+  SEGGER_RTT_printf(0, "Event: %u\n", evt); 
+#endif
+
+  
+    switch (evt)
     {
         case BSP_EVENT_KEY_0:
-#if LEDS_NUMBER > 0
-            LEDS_INVERT(LEDS_MASK);
-#endif
             printf("$BTN,0\n\r");
             break;
-				case BSP_EVENT_KEY_1:
-#if LEDS_NUMBER > 0
-            LEDS_INVERT(LEDS_MASK);
-#endif
+        case BSP_EVENT_KEY_1:
             printf("$BTN,1\n\r");
             break;
-			  case BSP_EVENT_KEY_2:
-#if LEDS_NUMBER > 0
-            LEDS_INVERT(LEDS_MASK);
-#endif
+        case BSP_EVENT_KEY_2:
             printf("$BTN,2\n\r");
             break;
-
         default:
-            break;
+            return; // no implementation needed
     }
+
 }
 
 #ifdef USE_TUNES
 static void pwm_start(uint32_t period_us) {
   
     /* 2-channel PWM, 200Hz, output on DK LED pins. */
-    app_pwm_config_t pwm1_cfg = APP_PWM_DEFAULT_CONFIG_2CH(period_us, 22, 24);
+    app_pwm_config_t pwm1_cfg = APP_PWM_DEFAULT_CONFIG_2CH(period_us, 24, 0);
     
     /* Switch the polarity of the second channel. */
     pwm1_cfg.pin_polarity[1] = APP_PWM_POLARITY_ACTIVE_HIGH;
@@ -1481,7 +1479,7 @@ static void uart_init(void)
         CTS_PIN_NUMBER,
         APP_UART_FLOW_CONTROL_DISABLED,
         false,
-        UART_BAUDRATE_BAUDRATE_Baud115200
+        UART_BAUDRATE_BAUDRATE_Baud9600
     };
 
     APP_UART_FIFO_INIT(&comm_params,
@@ -1494,19 +1492,6 @@ static void uart_init(void)
 }
 
 
-/**@brief Function for initializing buttons and LEDs.
- *
- * @param[out] p_erase_bonds  True if the clear bonds button was pressed to wake the application up.
- */
-void leds_init(void)
-{
-
-    // BSP_INIT_BUTTONS | BSP_INIT_LED
-    uint32_t err_code = bsp_init(BSP_INIT_LED,
-                                 APP_TIMER_TICKS(100, APP_TIMER_PRESCALER),
-                                 bsp_event_handler);
-    APP_ERROR_CHECK(err_code);
-}
 
 /**@brief Function for initializing buttons and LEDs.
  *
@@ -1515,15 +1500,14 @@ void leds_init(void)
 void buttons_leds_init(bool * p_erase_bonds)
 {
     nrf_gpio_cfg_output(GPIO_BUTTON);
-    nrf_gpio_pin_set(GPIO_BUTTON);
+    nrf_gpio_pin_clear(GPIO_BUTTON);
   
     // BSP_INIT_BUTTONS | BSP_INIT_LED
     uint32_t err_code = bsp_init(BSP_INIT_BUTTONS | BSP_INIT_LED,
                                  APP_TIMER_TICKS(100, APP_TIMER_PRESCALER),
-                                 bsp_event_handler);
+                                 bsp_evt_handler);
     APP_ERROR_CHECK(err_code);
 
-    //*p_erase_bonds = (startup_event == BSP_EVENT_CLEAR_BONDING_DATA);
 }
 
 /**@brief Function for initializing the Event Scheduler.
@@ -1565,8 +1549,12 @@ void wdt_event_handler(void)
  */
 int main(void)
 {
-    bool     erase_bonds = false;
+    bool     erase_bonds = true;
     uint32_t err_code;
+  
+#ifdef NRF_LOG_USES_RTT
+    SEGGER_RTT_printf(0, "Start !!\n"); 
+#endif
   
     //Configure WDT.
 #if (WDT_ENABLED == 1)
@@ -1578,10 +1566,6 @@ int main(void)
     nrf_drv_wdt_enable();
 #endif
   
-#if LEDS_NUMBER > 0
-    LEDS_ON(LEDS_MASK);
-#endif
-    
     timers_init();
     uart_init();
     buttons_leds_init(&erase_bonds);
@@ -1604,11 +1588,14 @@ int main(void)
     err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
     APP_ERROR_CHECK(err_code);
     
+    //nrf_gpio_cfg_output(LED_2);
+    //nrf_gpio_pin_set(LED_2);
+
     
 #if LEDS_NUMBER > 0
     LEDS_OFF(LEDS_MASK);
 #endif
-    
+
     // Enter main loop.
     for (;;)
     {
