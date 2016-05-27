@@ -47,7 +47,6 @@
 #include "nrf_gpio.h"
 #include "ble_srv_common.h"
 #include "ble_conn_params.h"
-//#include "nrf51_bitfields.h"
 #include "device_manager.h"
 #include "app_button.h"
 #include "app_timer.h"
@@ -260,13 +259,6 @@ void app_error_handler(uint32_t error_code, uint32_t line_num, const uint8_t *p_
     printf("$DBG,0,%ud,%ud\n\r", error_code, line_num);
   }
 
-#if LEDS_NUMBER > 0
-  LEDS_OFF(LEDS_MASK);
-  while (0) {
-    nrf_delay_ms(300);
-    LEDS_INVERT(LEDS_MASK);
-  }
-#endif
 }
 
 /**@brief Callback function for handling asserts in the SoftDevice.
@@ -654,11 +646,7 @@ static void notif_attr_print(ble_ancs_c_evt_notif_attr_t * p_attr,
     if (p_attr->attr_id==3) {
 
         // on sort la notif
-        printf("$ANCS,1,%s,%s\n\r", notif_title, notif_message);
-        //SEGGER_RTT_WriteString(0, "Notif_attr_print: ");
-        //SEGGER_RTT_WriteString(0, notif_message);
-        //SEGGER_RTT_WriteString(0, "  \n");
-        
+        printf("$ANCS,1,%s,%s\n\r", notif_title, notif_message);        
     }
     
   
@@ -713,7 +701,6 @@ static void on_ancs_c_evt(ble_ancs_c_evt_t * p_evt)
 
         case BLE_ANCS_C_EVT_NOTIF:
             m_notification_latest = p_evt->notif;
-            //notif_print(&m_notification_latest);
             ble_ancs_c_request_attrs(&m_notification_latest);
             break;
 
@@ -749,9 +736,6 @@ static void advertising_stop(void)
 
     err_code = sd_ble_gap_adv_stop();
     APP_ERROR_CHECK(err_code);
-
-    //err_code = bsp_indication_set(BSP_INDICATE_IDLE);
-    //APP_ERROR_CHECK(err_code);
 }
 
 
@@ -821,8 +805,6 @@ static void reset_prepare(void)
         // Disconnect from peer.
         err_code = sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
         APP_ERROR_CHECK(err_code);
-        //err_code = bsp_indication_set(BSP_INDICATE_IDLE);
-        //APP_ERROR_CHECK(err_code);
     }
     else
     {
@@ -1003,23 +985,15 @@ static void on_adv_evt(ble_adv_evt_t ble_adv_evt)
     switch (ble_adv_evt)
     {
         case BLE_ADV_EVT_DIRECTED:
-            //err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING_DIRECTED);
-            //APP_ERROR_CHECK(err_code);
             break;
 
         case BLE_ADV_EVT_FAST:
-            //err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING);
-            //APP_ERROR_CHECK(err_code);
             break;
 
         case BLE_ADV_EVT_FAST_WHITELIST:
-            //err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING_WHITELIST);
-            //APP_ERROR_CHECK(err_code);
             break;
 
         case BLE_ADV_EVT_SLOW:
-            //err_code = bsp_indication_set(BSP_INDICATE_ADVERTISING_SLOW);
-            //APP_ERROR_CHECK(err_code);
             break;
 
         case BLE_ADV_EVT_IDLE:
@@ -1064,16 +1038,11 @@ static void on_ble_evt(ble_evt_t * p_ble_evt)
     {
         case BLE_GAP_EVT_CONNECTED:
             printf("$ANCS,0,ANCS connected\n\r");
-            //SEGGER_RTT_WriteString(0, "Connected\n");
-            //err_code = bsp_indication_set(BSP_INDICATE_CONNECTED);
-            //APP_ERROR_CHECK(err_code);
-
             m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
             break;
 
         case BLE_GAP_EVT_DISCONNECTED:
             printf("$ANCS,0,ANCS disconnected\n\r");
-            //SEGGER_RTT_WriteString(0, "Disconnected\n");
             m_conn_handle = BLE_CONN_HANDLE_INVALID;
 				
 #if LEDS_NUMBER > 0
@@ -1130,6 +1099,17 @@ void bsp_evt_handler(bsp_event_t evt)
         case BSP_EVENT_KEY_2:
             printf("$BTN,2\n\r");
             break;
+#ifdef USE_TUNES
+				case BSP_EVENT_KEY_3:
+            play_mario();
+            break;
+				case BSP_EVENT_KEY_4:
+            play_mario();
+				    break;
+				case BSP_EVENT_KEY_5:
+            play_mario();
+            break;
+#endif
         default:
             return; // no implementation needed
     }
@@ -1473,13 +1453,13 @@ static void uart_init(void)
     uint32_t                     err_code;
     const app_uart_comm_params_t comm_params =
     {
-        12,/*RX_PIN_NUMBER,*/
+        16,/*RX_PIN_NUMBER, -> 12*/
         15,/*TX_PIN_NUMBER,*/
         RTS_PIN_NUMBER,
         CTS_PIN_NUMBER,
         APP_UART_FLOW_CONTROL_DISABLED,
         false,
-        UART_BAUDRATE_BAUDRATE_Baud9600
+        UART_BAUDRATE_BAUDRATE_Baud115200
     };
 
     APP_UART_FIFO_INIT(&comm_params,
@@ -1500,9 +1480,9 @@ static void uart_init(void)
 void buttons_leds_init(bool * p_erase_bonds)
 {
     nrf_gpio_cfg_output(GPIO_BUTTON);
+	  // pin to ground
     nrf_gpio_pin_clear(GPIO_BUTTON);
   
-    // BSP_INIT_BUTTONS | BSP_INIT_LED
     uint32_t err_code = bsp_init(BSP_INIT_BUTTONS | BSP_INIT_LED,
                                  APP_TIMER_TICKS(100, APP_TIMER_PRESCALER),
                                  bsp_evt_handler);
@@ -1587,10 +1567,6 @@ int main(void)
     // Start execution.
     err_code = ble_advertising_start(BLE_ADV_MODE_FAST);
     APP_ERROR_CHECK(err_code);
-    
-    //nrf_gpio_cfg_output(LED_2);
-    //nrf_gpio_pin_set(LED_2);
-
     
 #if LEDS_NUMBER > 0
     LEDS_OFF(LEDS_MASK);
