@@ -27,14 +27,14 @@ uint32_t ant_glasses_init(ant_glasses_profile_t * p_profile, ant_channel_config_
   
     p_profile->channel_number = p_channel_config->channel_number;
 
-    LOG_ANT("ANT GLASSES channel %u init\n\r", p_channel_config->channel_number);
+    LOG_HRM("ANT GLASSES channel %u init\n\r", p_channel_config->channel_number);
 		err_code = ant_channel_init(p_channel_config);
 		return err_code;
 }
 
 uint32_t ant_glasses_open(ant_glasses_profile_t * p_profile)
 {
-    LOG_ANT("ANT GLASSES channel %u open\n\r", p_profile->channel_number);
+    LOG_HRM("ANT GLASSES channel %u open\n\r", p_profile->channel_number);
     return sd_ant_channel_open(p_profile->channel_number);
 }
 
@@ -73,7 +73,7 @@ static void decode_glasses_rx_message(ant_glasses_profile_t * p_profile, uint8_t
     trans->avance += (float)msg->avance[1] / 100.;
   }
   
-  LOG_ANT("Message: mask/%d avance/%.2f\n\r", msg->led_mask[0], tmp);
+  LOG_HRM("Message: mask/%d avance/%.2f\n\r", msg->led_mask[0], tmp);
 
   return;
 }

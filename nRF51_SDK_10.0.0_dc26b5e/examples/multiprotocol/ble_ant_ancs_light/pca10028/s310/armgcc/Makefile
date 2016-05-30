@@ -62,17 +62,24 @@ $(abspath ../../../../../../components/drivers_nrf/pstorage/pstorage.c) \
 $(abspath ../../../../../../components/drivers_nrf/wdt/nrf_drv_wdt.c) \
 $(abspath ../../../../../../components/drivers_nrf/ppi/nrf_drv_ppi.c) \
 $(abspath ../../../../../../components/drivers_nrf/timer/nrf_drv_timer.c) \
-$(abspath ../../../../../../components/ant9/ant_stack_config/ant_stack_config.c) \
-$(abspath ../../../../../../components/ant9/ant_state_indicator/ant_state_indicator.c) \
-$(abspath ../../../../../../components/ant9/ant_profiles/ant_glasses/ant_glasses.c) \
-$(abspath ../../../../../../components/ant9/ant_profiles/ant_cad/ant_cad.c) \
-$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm/ant_hrm.c) \
-$(abspath ../../../../../../components/ant9/ant_channel_config/ant_channel_config.c) \
-$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm/pages/ant_hrm_page_0.c) \
-$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm/pages/ant_hrm_page_1.c) \
-$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm/pages/ant_hrm_page_2.c) \
-$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm/pages/ant_hrm_page_3.c) \
-$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm/pages/ant_hrm_page_4.c) \
+$(abspath ../../../../../../components/ant/ant_stack_config/ant_stack_config.c) \
+$(abspath ../../../../../../components/ant/ant_state_indicator/ant_state_indicator.c) \
+$(abspath ../../../../../../components/ant/ant_profiles/ant_glasses/ant_glasses.c) \
+$(abspath ../../../../../../components/ant/ant_channel_config/ant_channel_config.c) \
+$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/ant_hrm.c) \
+$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/pages/ant_hrm_page_0.c) \
+$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/pages/ant_hrm_page_1.c) \
+$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/pages/ant_hrm_page_2.c) \
+$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/pages/ant_hrm_page_3.c) \
+$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/pages/ant_hrm_page_4.c) \
+$(abspath ../../../../../../components/ant/ant_profiles/ant_bsc/ant_bsc.c) \
+$(abspath ../../../../../../components/ant/ant_profiles/ant_bsc/pages/ant_bsc_page_0.c) \
+$(abspath ../../../../../../components/ant/ant_profiles/ant_bsc/pages/ant_bsc_page_1.c) \
+$(abspath ../../../../../../components/ant/ant_profiles/ant_bsc/pages/ant_bsc_page_2.c) \
+$(abspath ../../../../../../components/ant/ant_profiles/ant_bsc/pages/ant_bsc_page_3.c) \
+$(abspath ../../../../../../components/ant/ant_profiles/ant_bsc/pages/ant_bsc_page_4.c) \
+$(abspath ../../../../../../components/ant/ant_profiles/ant_bsc/pages/ant_bsc_page_5.c) \
+$(abspath ../../../../../../components/ant/ant_profiles/ant_bsc/pages/ant_bsc_combined_page_0.c) \
 $(abspath ../../../../../bsp/bsp.c) \
 $(abspath ../../../../../bsp/bsp_btn_ble.c) \
 $(abspath ../../../main.c) \
@@ -123,17 +130,18 @@ INC_PATHS += -I$(abspath ../../../../../../components/ble/ble_services/ble_dis)
 INC_PATHS += -I$(abspath ../../../../../../components/ble/ble_services/ble_ancs_c)
 INC_PATHS += -I$(abspath ../../../../../../components/device)
 INC_PATHS += -I$(abspath ../../../../../../components/ble/ble_db_discovery)
-INC_PATHS += -I$(abspath ../../../../../../components/ant9/ant_stack_config)
-INC_PATHS += -I$(abspath ../../../../../../components/ant9/ant_state_indicator)
-INC_PATHS += -I$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm)
-INC_PATHS += -I$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm/utils)
-INC_PATHS += -I$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm/pages)
-INC_PATHS += -I$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm/pages/logger)
-INC_PATHS += -I$(abspath ../../../../../../components/ant9/ant_channel_config)
-INC_PATHS += -I$(abspath ../../../../../../components/ant9/ant_profiles/ant_glasses)
-INC_PATHS += -I$(abspath ../../../../../../components/ant9/ant_profiles/ant_cad)
-INC_PATHS += -I$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm/pages)
-INC_PATHS += -I$(abspath ../../../../../../components/ant9/ant_profiles/ant_hrm/pages/logger)
+INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_stack_config)
+INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_state_indicator)
+INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm)
+INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/utils)
+INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/pages)
+INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_profiles/ant_hrm/pages/logger)
+INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_channel_config)
+INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_profiles/ant_glasses)
+INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_profiles/ant_bsc)
+INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_profiles/ant_bsc/pages)
+INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_profiles/ant_bsc/utils)
+INC_PATHS += -I$(abspath ../../../../../../components/ant/ant_profiles/ant_bsc/pages/logger)
 INC_PATHS += -I$(abspath ../../../../../../components/drivers_nrf/gpiote)
 INC_PATHS += -I$(abspath ../../../../../../components/drivers_nrf/hal)
 INC_PATHS += -I$(abspath ../../../../../../components/toolchain/gcc)
@@ -155,7 +163,7 @@ BUILD_DIRECTORIES := $(sort $(OBJECT_DIRECTORY) $(OUTPUT_BINARY_DIRECTORY) $(LIS
 #flags common to all targets
 CFLAGS  = -DSWI_DISABLE0
 CFLAGS += -DBOARD_PCA10028
-CFLAGS += -DBUTTONS_NUMBER=5 -DLEDS_NUMBER=0
+CFLAGS += -DBUTTONS_NUMBER=6 -DLEDS_NUMBER=0
 #CFLAGS += -DNRF_LOG_USES_RTT
 CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -DNRF51

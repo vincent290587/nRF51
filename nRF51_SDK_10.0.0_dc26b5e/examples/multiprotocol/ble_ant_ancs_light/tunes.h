@@ -89,59 +89,49 @@
 #define NOTE_D8  4699
 #define NOTE_DS8 4978
 
-#define NOTES_NB 16*5 - 2
- 
+#define VICTORY_NB 16
+
 //Mario main theme melody
-const uint16_t melody[] = {
+const uint16_t victory_m[] = {
   NOTE_E7, NOTE_E7, 0, NOTE_E7,
   0, NOTE_C7, NOTE_E7, 0,
   NOTE_G7, 0, 0,  0,
-  NOTE_G6, 0, 0, 0,
- 
-  NOTE_C7, 0, 0, NOTE_G6,
-  0, 0, NOTE_E6, 0,
-  0, NOTE_A6, 0, NOTE_B6,
-  0, NOTE_AS6, NOTE_A6, 0,
- 
-  NOTE_G6, NOTE_E7, NOTE_G7,
-  NOTE_A7, 0, NOTE_F7, NOTE_G7,
-  0, NOTE_E7, 0, NOTE_C7,
-  NOTE_D7, NOTE_B6, 0, 0,
- 
-  NOTE_C7, 0, 0, NOTE_G6,
-  0, 0, NOTE_E6, 0,
-  0, NOTE_A6, 0, NOTE_B6,
-  0, NOTE_AS6, NOTE_A6, 0,
- 
-  NOTE_G6, NOTE_E7, NOTE_G7,
-  NOTE_A7, 0, NOTE_F7, NOTE_G7,
-  0, NOTE_E7, 0, NOTE_C7,
-  NOTE_D7, NOTE_B6, 0, 0
+  NOTE_G6, 0, 0, 0
 };
 //Mario main them tempo
-const uint8_t tempo[] = {
+const uint8_t victory_t[] = {
   12, 12, 12, 12,
   12, 12, 12, 12,
   12, 12, 12, 12,
-  12, 12, 12, 12,
- 
-  12, 12, 12, 12,
-  12, 12, 12, 12,
-  12, 12, 12, 12,
-  12, 12, 12, 12,
- 
-  9, 9, 9,
-  12, 12, 12, 12,
-  12, 12, 12, 12,
-  12, 12, 12, 12,
- 
-  12, 12, 12, 12,
-  12, 12, 12, 12,
-  12, 12, 12, 12,
-  12, 12, 12, 12,
- 
-  9, 9, 9,
-  12, 12, 12, 12,
-  12, 12, 12, 12,
-  12, 12, 12, 12,
+  12, 12, 12, 12
 };
+
+#define DEFEAT_NB 10
+
+const uint16_t defaite_m[] = {
+  0, NOTE_DS4, NOTE_CS4, NOTE_D4,
+  NOTE_CS4, NOTE_DS4,
+  NOTE_DS4, NOTE_GS3,
+  NOTE_G3, NOTE_CS4
+};
+
+const uint8_t defaite_t[] = {
+  6, 18, 18, 18,
+  6, 6,
+  6, 6,
+  6, 6
+};
+
+#define BIP_NB 3
+
+const uint16_t bip_m[] = {
+  NOTE_E7, 0, NOTE_E7
+};
+const uint8_t bip_t[] = {
+  12, 12, 12
+};
+
+
+const uint8_t   notes_nb[]   = {VICTORY_NB , BIP_NB , DEFEAT_NB};
+const uint16_t* melodies_m[] = {victory_m  , bip_m  , defaite_m};
+const uint8_t*  melodies_t[] = {victory_t  , bip_t  , defaite_t};
