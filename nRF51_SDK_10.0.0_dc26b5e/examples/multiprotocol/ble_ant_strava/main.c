@@ -48,7 +48,6 @@
 #include "ble_srv_common.h"
 #include "ble_conn_params.h"
 #include "ble_nus.h"
-//#include "nrf51_bitfields.h"
 #include "device_manager.h"
 #include "app_button.h"
 #include "app_timer.h"
@@ -175,7 +174,7 @@ static volatile bool ready_flag;            // A flag indicating PWM status.
 
 static uint16_t                  m_conn_handle = BLE_CONN_HANDLE_INVALID;  /**< Handle of the current connection. */
 
-//static ble_db_discovery_t        m_ble_db_discovery;                       /**< Structure used to identify the DB Discovery module. */
+static ble_db_discovery_t        m_ble_db_discovery;                       /**< Structure used to identify the DB Discovery module. */
 
 static dm_application_instance_t m_app_handle;                             /**< Application identifier allocated by the Device Manager. */
 static dm_handle_t               m_peer_handle;                            /**< Identifies the peer that is currently connected. */
@@ -1106,8 +1105,8 @@ static uint32_t device_manager_evt_handler(dm_handle_t const * p_handle,
             app_context_load(p_handle);
 #endif
             
-            //err_code = ble_db_discovery_start(&m_ble_db_discovery, p_evt->event_param.p_gap_param->conn_handle);
-            //APP_ERROR_CHECK(err_code);
+            err_code = ble_db_discovery_start(&m_ble_db_discovery, p_evt->event_param.p_gap_param->conn_handle);
+            APP_ERROR_CHECK(err_code);
             break; 
 
         default:
@@ -1398,7 +1397,7 @@ static void play_tune (void) {
 static void ble_evt_dispatch(ble_evt_t * p_ble_evt)
 {
     dm_ble_evt_handler(p_ble_evt);
-    //ble_db_discovery_on_ble_evt(&m_ble_db_discovery, p_ble_evt);
+    ble_db_discovery_on_ble_evt(&m_ble_db_discovery, p_ble_evt);
     ble_conn_params_on_ble_evt(p_ble_evt);
     
 #ifdef BLE_DFU_APP_SUPPORT
@@ -1646,7 +1645,7 @@ static void uart_init(void)
     uint32_t                     err_code;
     const app_uart_comm_params_t comm_params =
     {
-        12,/*RX_PIN_NUMBER,*/
+        16,/*RX_PIN_NUMBER,*/
         15,/*TX_PIN_NUMBER,*/
         RTS_PIN_NUMBER,
         CTS_PIN_NUMBER,
@@ -1696,8 +1695,8 @@ static void scheduler_init(void)
  */
 static void db_discovery_init(void)
 {
-    //uint32_t err_code = ble_db_discovery_init();
-    //APP_ERROR_CHECK(err_code);
+    uint32_t err_code = ble_db_discovery_init();
+    APP_ERROR_CHECK(err_code);
 }
 
 /**@brief Function for the Power manager.
